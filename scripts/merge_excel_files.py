@@ -239,6 +239,24 @@ def merge_excels(input_dir_relpath: str, output_file_relpath: str):
         merged_main.to_excel(writer, index=False, sheet_name="合并数据")
         merged_dups.to_excel(writer, index=False, sheet_name="重复数据")
 
+    db_path = os.path.abspath(os.path.join(root, "顶层产品净值数据库.xlsm"))
+    db_sheet_name = "净值数据"
+    _write_log_line(log_path, "INFO", f"开始写入数据库文件: {os.path.relpath(db_path, root)} sheet={db_sheet_name}")
+    if os.path.exists(db_path):
+        wb = openpyxl.load_workbook(db_path, keep_vba=True)
+        if db_sheet_name in wb.sheetnames:
+            del wb[db_sheet_name]
+    else:
+        wb = openpyxl.Workbook()
+        if "Sheet" in wb.sheetnames:
+            del wb["Sheet"]
+    ws = wb.create_sheet(title=db_sheet_name, index=0)
+    ws.append(list(merged_main.columns))
+    for _, row in merged_main.iterrows():
+        ws.append([v if not (isinstance(v, float) and pd.isna(v)) else None for v in row.tolist()])
+    wb.save(db_path)
+    _write_log_line(log_path, "INFO", f"数据库文件写入完成: {os.path.relpath(db_path, root)}")
+
     _write_log_line(log_path, "INFO", f"写入完成: {os.path.relpath(out_path, root)}")
     _write_log_line(log_path, "INFO", f"日志文件: {os.path.relpath(log_path, root)}")
     return out_path, log_path, {"total_rows": int(merged.shape[0]), "dedup_rows": int(merged_main.shape[0]), "dup_rows": dup_count}
