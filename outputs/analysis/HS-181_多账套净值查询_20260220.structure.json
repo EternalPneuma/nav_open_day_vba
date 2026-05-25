@@ -1,0 +1,56 @@
+{
+  "input_file": "181-固收上层\\HS-181_多账套净值查询_20260220.xlsx",
+  "generated_at": "2026-05-22T11:17:07",
+  "python": "3.13.5",
+  "dependencies": {
+    "pandas": "3.0.3",
+    "openpyxl": "3.1.5",
+    "xlrd": "2.0.2"
+  },
+  "sheet_names": [
+    "Sheet1"
+  ],
+  "sheets": [
+    {
+      "sheet_name": "Sheet1",
+      "excel_max_row": 183,
+      "excel_max_column": 10,
+      "pandas_header_row_0_based": 0,
+      "pandas_header_row_1_based": 1,
+      "data_shape": {
+        "rows": 182,
+        "cols": 10
+      },
+      "headers": [
+        "账套名称",
+        "日期",
+        "资产净值",
+        "单位净值",
+        "总资产",
+        "总负债",
+        "实收信托",
+        "总估值增值",
+        "信托计划代码",
+        "信托计划累计净值"
+      ],
+      "dtype_distribution": {
+        "float64": 7,
+        "str": 2,
+        "int64": 1
+      },
+      "null_ratio_overall": 0.004945054945054945,
+      "null_ratio_by_column": {
+        "账套名称": 0.0,
+        "日期": 0.0,
+        "资产净值": 0.0,
+        "单位净值": 0.04945054945054945,
+        "总资产": 0.0,
+        "总负债": 0.0,
+        "实收信托": 0.0,
+        "总估值增值": 0.0,
+        "信托计划代码": 0.0,
+        "信托计划累计净值": 0.0
+      }
+    }
+  ]
+}
