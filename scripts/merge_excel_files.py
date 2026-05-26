@@ -239,7 +239,7 @@ def merge_excels(input_dir_relpath: str, output_file_relpath: str):
         merged_main.to_excel(writer, index=False, sheet_name="合并数据")
         merged_dups.to_excel(writer, index=False, sheet_name="重复数据")
 
-    db_path = os.path.abspath(os.path.join(root, "顶层产品净值数据库.xlsm"))
+    db_path = os.path.abspath(os.path.join(root, "上层产品净值数据库.xlsm"))
     db_sheet_name = "净值数据"
     _write_log_line(log_path, "INFO", f"开始写入数据库文件: {os.path.relpath(db_path, root)} sheet={db_sheet_name}")
     if os.path.exists(db_path):
