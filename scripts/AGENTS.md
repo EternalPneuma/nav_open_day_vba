@@ -8,6 +8,7 @@ Python utilities prepare Excel data for the later VBA workflow; keep them root-r
 |------|----------|-------|
 | Main merge/import | `merge_excel_files.py` | Reads source directory, writes merged workbook, updates `.xlsm` database sheet |
 | Structure report | `tools/analyze_excel_structure.py` | Single-workbook metadata extractor |
+| Quick field listing | `tools/list_sheet_fields.py` | Prints every sheet's field names and non-null record counts to console |
 | Future VBA modules | `vba/` | Child scope has VBA-specific rules |
 
 ## CONVENTIONS
@@ -24,6 +25,8 @@ Python utilities prepare Excel data for the later VBA workflow; keep them root-r
 uv sync
 uv run python scripts/merge_excel_files.py
 uv run python scripts/tools/analyze_excel_structure.py
+uv run python scripts/tools/list_sheet_fields.py
+uv run python scripts/tools/list_sheet_fields.py "上层产品净值数据库.xlsm"
 uv run python -m py_compile scripts/merge_excel_files.py scripts/tools/analyze_excel_structure.py
 ```
 

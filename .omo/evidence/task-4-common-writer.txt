@@ -1,0 +1,11 @@
+Verification PASS:
+- WriteCommonFields inserted at line 77 (restructured file order)
+- All Task 1-3 code preserved (TryReadDate, ParseYYYYMMDD, BuildHeaderMap, LastUsedRow, LastUsedColumn, NormalizeText, BuildNAVDateLookup, LookupNAV, CreateOutputWorkbook, WriteSheetHeaders)
+- WriteCommonFields validations: wbOutput Nothing check, sheet existence, all required columns
+- Category matching: NormalizeText + StrComp on 3 categories — PASS
+- 9 common fields written cols 1-9: 序号, 信托计划代码, 系列, 产品名称, 上一开放日, 上一开放日净值, 基准日期, 基准日期净值, 下一开放日
+- Date format: cols 5,7,9 = "yyyy-mm-dd" — PASS
+- Benchmark rate for 直销 written to col 10 — PASS (bonus)
+- rowCounters initialized per sheet at row 2 — PASS
+- Unknown categories skipped — PASS
+- Minor: Public Sub vs Private Sub (cosmetic, no functional impact)

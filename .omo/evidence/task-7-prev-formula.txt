@@ -1,0 +1,8 @@
+Verification PASS — 交行代销 previous period formula check:
+- Function ComputeBankAgent at line ~276
+- 上一周期年化 formula: (CDbl(prevNav) / CDbl(prevPrevNav) - 1) * (365 / CDbl(prevInterval))
+- Denominator is previous interval (上次开放实际间隔) — NOT 运作时间
+- Guard: all 3 values checked for IsEmpty/IsError, prevPrevNav<>0, prevInterval>0
+- 当前周期年化 formula (line ~286): (CDbl(baselineNav) / CDbl(prevNav) - 1) * (365 / CDbl(elapsed))
+- This one correctly uses 运作时间 as denominator
+- NumberFormat: "0.00%" applied to both cols 13 and 14

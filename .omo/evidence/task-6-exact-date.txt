@@ -1,0 +1,7 @@
+Verification PASS — 直销 exact date match check:
+- Function ComputeDirectSales: DateAdd("d", -7, CDate(baselineDate)) for 7-day offset
+- DateAdd("d", -28, CDate(baselineDate)) for 28-day offset
+- LookupNAV called with exact offset date — no While/Wend loop, no iterative fallback
+- Formula 7日: (CDbl(baselineNav) / CDbl(nav7) - 1) * (365 / 7)
+- Formula 28日: (CDbl(baselineNav) / CDbl(nav28) - 1) * (365 / 28)
+- Missing NAV handled via IsEmpty check — field left blank

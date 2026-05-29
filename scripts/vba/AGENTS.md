@@ -9,6 +9,7 @@ VBA source belongs here as plain `.txt` modules copied manually into Excel VBE; 
 | Add VBA module text | `scripts/vba/*.txt` | Keep copy-paste friendly for VBE; no packaging step |
 | Read merged NAV data | workbook sheet `净值数据` | Created by `scripts/merge_excel_files.py` in `上层产品净值数据库.xlsm` |
 | Compare source layout | `outputs/analysis/*.structure.json` | Confirms imported NAV headers and row shape |
+| List sheet/field structure | `scripts/tools/list_sheet_fields.py` | Run `uv run python scripts/tools/list_sheet_fields.py` to quickly see all sheets, field names, and record counts in the database |
 | Business requirements | root `AGENTS.md` | Holds current 7/28-day, open-day, holiday, and benchmark rules |
 
 ## CONVENTIONS

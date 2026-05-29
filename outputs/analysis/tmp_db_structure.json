@@ -1,0 +1,150 @@
+{
+  "input_file": "上层产品净值数据库.xlsm",
+  "generated_at": "2026-05-26T15:56:33",
+  "python": "3.13.5",
+  "dependencies": {
+    "pandas": "3.0.3",
+    "openpyxl": "3.1.5",
+    "xlrd": "2.0.2"
+  },
+  "sheet_names": [
+    "净值数据",
+    "产品分类",
+    "开放日"
+  ],
+  "sheets": [
+    {
+      "sheet_name": "净值数据",
+      "excel_max_row": 48040,
+      "excel_max_column": 12,
+      "pandas_header_row_0_based": 0,
+      "pandas_header_row_1_based": 1,
+      "data_shape": {
+        "rows": 48039,
+        "cols": 12
+      },
+      "headers": [
+        "账套名称",
+        "日期",
+        "资产净值",
+        "单位净值",
+        "总资产",
+        "总负债",
+        "实收信托",
+        "总估值增值",
+        "信托计划代码",
+        "信托计划累计净值",
+        "source_file",
+        "source_sheet"
+      ],
+      "dtype_distribution": {
+        "float64": 7,
+        "str": 4,
+        "int64": 1
+      },
+      "null_ratio_overall": 0.006421865567559691,
+      "null_ratio_by_column": {
+        "账套名称": 0.0,
+        "日期": 0.0,
+        "资产净值": 0.0,
+        "单位净值": 0.0770623868107163,
+        "总资产": 0.0,
+        "总负债": 0.0,
+        "实收信托": 0.0,
+        "总估值增值": 0.0,
+        "信托计划代码": 0.0,
+        "信托计划累计净值": 0.0,
+        "source_file": 0.0,
+        "source_sheet": 0.0
+      }
+    },
+    {
+      "sheet_name": "产品分类",
+      "excel_max_row": 184,
+      "excel_max_column": 19,
+      "pandas_header_row_0_based": 0,
+      "pandas_header_row_1_based": 1,
+      "data_shape": {
+        "rows": 183,
+        "cols": 19
+      },
+      "headers": [
+        "序号",
+        "信托计划代码",
+        "系列",
+        "分类",
+        "产品名称",
+        "套账名称",
+        "简称",
+        "基准收益率",
+        "理论间隔",
+        "上上一开放日",
+        "上一开放日",
+        "基准日期",
+        "下一开放日",
+        "上次开放实际间隔",
+        "实际间隔",
+        "运作时间",
+        "上上一开放日净值",
+        "上一开放日净值",
+        "基准日期净值"
+      ],
+      "dtype_distribution": {
+        "str": 6,
+        "float64": 6,
+        "datetime64[us]": 4,
+        "int64": 2,
+        "object": 1
+      },
+      "null_ratio_overall": 0.15645671555939028,
+      "null_ratio_by_column": {
+        "序号": 0.0,
+        "信托计划代码": 0.0,
+        "系列": 0.0,
+        "分类": 0.0,
+        "产品名称": 0.0,
+        "套账名称": 0.0,
+        "简称": 0.0,
+        "基准收益率": 0.0,
+        "理论间隔": 0.0,
+        "上上一开放日": 0.546448087431694,
+        "上一开放日": 0.20765027322404372,
+        "基准日期": 0.0,
+        "下一开放日": 0.20218579234972678,
+        "上次开放实际间隔": 0.546448087431694,
+        "实际间隔": 0.20765027322404372,
+        "运作时间": 0.20765027322404372,
+        "上上一开放日净值": 0.6284153005464481,
+        "上一开放日净值": 0.4262295081967213,
+        "基准日期净值": 0.0
+      }
+    },
+    {
+      "sheet_name": "开放日",
+      "excel_max_row": 857,
+      "excel_max_column": 3,
+      "pandas_header_row_0_based": 0,
+      "pandas_header_row_1_based": 1,
+      "data_shape": {
+        "rows": 856,
+        "cols": 3
+      },
+      "headers": [
+        "序号",
+        "产品名称",
+        "开放日"
+      ],
+      "dtype_distribution": {
+        "object": 1,
+        "str": 1,
+        "datetime64[us]": 1
+      },
+      "null_ratio_overall": 0.0,
+      "null_ratio_by_column": {
+        "序号": 0.0,
+        "产品名称": 0.0,
+        "开放日": 0.0
+      }
+    }
+  ]
+}

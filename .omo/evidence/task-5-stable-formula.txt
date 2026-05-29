@@ -1,0 +1,7 @@
+Verification PASS — stable long term formula check:
+- Function: ComputeStableLongTerm at line ~654
+- Column mapping correct: col 6=prevNAV, col 8=baselineNAV, col 11=elapsed, col 12=当前周期年化
+- Formula: (CDbl(baselineNav) / CDbl(prevNav) - 1) * (365 / CLng(elapsed))
+- NO +1 in denominator
+- Guards: Not IsEmpty + Not IsError for all 3 inputs, prevNav<>0, elapsed>0
+- NumberFormat: "0.00%"

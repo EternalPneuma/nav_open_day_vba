@@ -1,0 +1,10 @@
+Verification PASS — Orchestration wiring check:
+- CalculateClassReportCore fully implemented (no TODO stub)
+- Flow: BuildNAVDateLookup → CreateOutputWorkbook → WriteSheetHeaders → WriteCommonFields → ComputeStableLongTerm → ComputeDirectSales → ComputeBankAgent
+- SaveAs: FileFormat:=xlOpenXMLWorkbook (51 = .xlsx)
+- Save path: ThisWorkbook.Path & "\" & Format$(baselineDate, "yyyymmdd") & "-上层产品分类表现.xlsx"
+- Auto-overwrite: Application.DisplayAlerts = False before SaveAs
+- Close: wbOutput.Close SaveChanges:=False
+- Settings restored: Application.Calculation, EnableEvents, ScreenUpdating, DisplayAlerts — all saved/set at top and restored
+- Error handler: CleanFail restores ALL 4 settings + MsgBox vbCritical
+- MsgBox summary: per-sheet product counts using rowCounters dictionary

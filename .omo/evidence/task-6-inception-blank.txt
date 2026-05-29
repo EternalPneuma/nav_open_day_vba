@@ -1,0 +1,6 @@
+Verification PASS — 成立以来年化 blank check:
+- 成立以来年化 is col 13 in 直销 output sheet
+- Comment in ComputeDirectSales: "' 成立以来年化: always blank (col 13 untouched)"
+- No value assignment, No formula, No computation for col 13
+- Column header written by WriteSheetHeaders, data cells left empty
+- Confirmed: no computation logic exists for this column
