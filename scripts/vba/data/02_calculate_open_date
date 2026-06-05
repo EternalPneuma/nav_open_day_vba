@@ -1,10 +1,10 @@
 Option Explicit
 
 ' 模块用途：根据"开放日"工作表数据，在"产品分类"工作表中计算每个产品的下一开放日、上一开放日、本次开放日间隔、本期已持续天数。
-' 使用方式：将本文件内容复制到 上层产品净值数据库.xlsm 的标准模块中，运行 测算下一开放日与上一开放日。
+' 使用方式：将本文件内容复制到 上层产品净值数据库.xlsm 的标准模块中，运行 Step02CalculateOpenDate。
 '
 ' 计算逻辑：
-'   基准日期 = sheet"净值数据"B列日期（yyyyMMdd格式）的最大值
+'   基准日期 = sheet"上层产品净值数据(181)"B列日期（yyyyMMdd格式）的最大值
 '   下一开放日 = 开放日列表中 >= 基准日期的最小日期
 '   上一开放日 = 开放日列表中 <  基准日期的最大日期
 '   上上一开放日 = 开放日列表中 < 上一开放日的最大日期（无则留空）
@@ -12,7 +12,7 @@ Option Explicit
 '   上次开放实际间隔 = 上一开放日 - 上上一开放日（天数，无则留空）
 '   运作时间 = 基准日期 - 上一开放日（天数）
 '   日开/周开产品（开放日工作表中无数据）直接跳过，不填写。
-'   基准日期净值 = sheet"净值数据"中匹配信托计划代码且日期=基准日期的单位净值。
+'   基准日期净值 = sheet"上层产品净值数据(181)"中匹配信托计划代码且日期=基准日期的单位净值。
 
 Private Const TARGET_SHEET_NAME As String = "产品分类"
 Private Const SOURCE_SHEET_NAME As String = "开放日"
@@ -28,7 +28,7 @@ Private Const COL_PREV_PREV_OPEN As String = "上上一开放日"
 Private Const COL_PREV_INTERVAL As String = "上次开放实际间隔"
 
 ' 净值数据工作表相关常量
-Private Const NAV_SHEET_NAME As String = "净值数据"
+Private Const NAV_SHEET_NAME As String = "上层产品净值数据(181)"
 Private Const COL_TRUST_CODE As String = "信托计划代码"
 Private Const COL_NAV_DATE As String = "日期"
 Private Const COL_UNIT_NAV As String = "单位净值"
@@ -41,11 +41,7 @@ Private Const COL_BASELINE_NAV As String = "基准日期净值"
 Private Const COL_PREV_NAV As String = "上一开放日净值"
 Private Const COL_PREV_PREV_NAV As String = "上上一开放日净值"
 
-Public Sub STEP2测算开放日()
-    CalculateOpenDaysCore
-End Sub
-
-Public Sub S2CalculateOpenDays()
+Public Sub Step02CalculateOpenDate()
     CalculateOpenDaysCore
 End Sub
 
@@ -63,7 +59,7 @@ Private Sub CalculateOpenDaysCore()
     Application.EnableEvents = False
     Application.Calculation = xlCalculationManual
 
-    ' 1. 获取基准日期：sheet"净值数据"B列日期（yyyyMMdd格式）的最大值
+    ' 1. 获取基准日期：sheet"上层产品净值数据(181)"B列日期（yyyyMMdd格式）的最大值
     Dim baselineDate As Date
     baselineDate = GetBaselineDateFromNAV()
 
@@ -389,7 +385,7 @@ Private Function EnsureOutputColumns(ByVal ws As Worksheet, ByVal headerMap As O
 End Function
 
 ' ---------------------------------------------------------------------------
-' 从 sheet"净值数据" B列获取最大日期（yyyyMMdd 格式）
+' 从 sheet"上层产品净值数据(181)" B列获取最大日期（yyyyMMdd 格式）
 ' ---------------------------------------------------------------------------
 
 Private Function GetBaselineDateFromNAV() As Date
@@ -400,7 +396,7 @@ Private Function GetBaselineDateFromNAV() As Date
     Set headerMap = BuildHeaderMap(ws, 1)
 
     If Not headerMap.Exists(COL_NAV_DATE) Then
-        Err.Raise vbObjectError + 3001, , "净值数据工作表缺少字段：" & COL_NAV_DATE
+        Err.Raise vbObjectError + 3001, , NAV_SHEET_NAME & "工作表缺少字段：" & COL_NAV_DATE
     End If
 
     Dim dateCol As Long
@@ -429,7 +425,7 @@ Private Function GetBaselineDateFromNAV() As Date
     Next r
 
     If Not found Then
-        Err.Raise vbObjectError + 3002, , "净值数据工作表中未找到有效日期"
+        Err.Raise vbObjectError + 3002, , NAV_SHEET_NAME & "工作表中未找到有效日期"
     End If
 
     GetBaselineDateFromNAV = maxDate

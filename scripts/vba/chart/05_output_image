@@ -1,0 +1,879 @@
+Option Explicit
+
+'==============================================================
+' 模块: 导出拼接图表
+' 功能:
+'   1. 导出每个sheet的4个chart
+'   2. 红色左右拼接
+'   3. 蓝色上下拼接
+'   4. 单图存raw子文件夹
+'   5. 支持高清导出，并同步放大文字、数字、线条、标记
+'==============================================================
+
+'==============================================================
+' 高清导出参数
+'==============================================================
+Private Const EXPORT_SCALE As Double = 2          ' 图片导出倍数：2通常够用，3更清晰但文件更大
+Private Const APPEARANCE_SCALE As Double = 2      ' 字体/数字/线条/标记放大倍数，通常与EXPORT_SCALE一致
+Private Const MERGE_GAP As Single = 15            ' 原始拼接间距，单位为磅
+
+
+Public Sub STEP5导出拼接图表()
+    
+    Dim t0 As Double: t0 = Timer
+    
+    Dim oldScreenUpdating As Boolean
+    Dim oldCalculation As XlCalculation
+    Dim oldEnableEvents As Boolean
+    Dim oldDisplayAlerts As Boolean
+    
+    oldScreenUpdating = Application.ScreenUpdating
+    oldCalculation = Application.Calculation
+    oldEnableEvents = Application.EnableEvents
+    oldDisplayAlerts = Application.DisplayAlerts
+    
+    On Error GoTo MainErr
+    
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+    
+    Dim wbDB As Workbook: Set wbDB = ThisWorkbook
+    Dim dbPath As String: dbPath = wbDB.Path & "\"
+    
+    '--- 1. 查找最新的[产品净值汇总_yyyymmdd.xlsx] ---
+    Dim regex As Object
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "^产品净值汇总_(\d{8})\.xlsx$"
+    
+    Dim fileName As String
+    Dim latestFile As String
+    Dim latestKey As String
+    
+    fileName = Dir(dbPath & "产品净值汇总_*.xlsx")
+    Do While Len(fileName) > 0
+        If regex.Test(fileName) Then
+            Dim matches As Object
+            Set matches = regex.Execute(fileName)
+            If matches(0).SubMatches(0) > latestKey Then
+                latestKey = matches(0).SubMatches(0)
+                latestFile = fileName
+            End If
+        End If
+        fileName = Dir()
+    Loop
+    
+    If Len(latestFile) = 0 Then
+        MsgBox "未找到[产品净值汇总_yyyymmdd.xlsx]文件,请先运行[生成产品图表]。", vbExclamation
+        GoTo CleanUp
+    End If
+    
+    Dim targetPath As String
+    targetPath = dbPath & latestFile
+    
+    '--- 2. 创建输出文件夹结构 ---
+    Dim outFolder As String
+    Dim rawFolder As String
+    
+    outFolder = dbPath & "产品图表_" & latestKey & "\"
+    rawFolder = outFolder & "raw\"
+    
+    If Dir(outFolder, vbDirectory) = "" Then MkDir outFolder
+    If Dir(rawFolder, vbDirectory) = "" Then MkDir rawFolder
+    
+    '--- 3. 打开/获取目标工作簿 ---
+    Dim wbTarget As Workbook
+    Dim wasOpen As Boolean
+    wasOpen = False
+    
+    On Error Resume Next
+    Set wbTarget = Workbooks(latestFile)
+    On Error GoTo MainErr
+    
+    If wbTarget Is Nothing Then
+        Set wbTarget = Workbooks.Open(targetPath)
+    Else
+        wasOpen = True
+    End If
+    
+    '--- 4. 遍历每个sheet ---
+    Dim ws As Worksheet
+    Dim processedCount As Long
+    Dim errMsg As String
+    
+    processedCount = 0
+    errMsg = ""
+    
+    Dim chartNames As Variant
+    chartNames = Array("chart_净值_红", "chart_收益率_红", "chart_净值_蓝", "chart_收益率_蓝")
+    
+    For Each ws In wbTarget.Worksheets
+        
+        Dim safeName As String
+        safeName = ws.Name
+        
+        '--- 4.1 导出4个chart到raw文件夹 ---
+        Dim rawFiles(1 To 4) As String
+        Dim i As Long
+        
+        ' 临时开启屏幕刷新，让chart能正常渲染
+        Application.ScreenUpdating = True
+        
+        For i = 1 To 4
+            
+            rawFiles(i) = rawFolder & safeName & "_" & Mid(CStr(chartNames(i - 1)), 7) & ".png"
+            
+            If ChartExists(ws, CStr(chartNames(i - 1))) Then
+                
+                Dim exportOK As Boolean
+                exportOK = ExportChartWithRetry( _
+                    ws.ChartObjects(CStr(chartNames(i - 1))), _
+                    rawFiles(i), _
+                    3)
+                
+                If Not exportOK Then
+                    errMsg = errMsg & ws.Name & "/" & CStr(chartNames(i - 1)) & "(导出空白或失败,已重试), "
+                    rawFiles(i) = ""
+                End If
+                
+            Else
+                rawFiles(i) = ""
+            End If
+            
+        Next i
+        
+        Application.ScreenUpdating = False
+        
+        '--- 4.2 拼接红色组：左右拼接 ---
+        Dim outRed As String
+        outRed = outFolder & safeName & "_红.png"
+        
+        If Len(rawFiles(1)) > 0 And FileExists(rawFiles(1)) Then
+            If Len(rawFiles(2)) > 0 And FileExists(rawFiles(2)) Then
+                If Not MergeTwoImages(wbTarget, rawFiles(1), rawFiles(2), outRed) Then
+                    errMsg = errMsg & ws.Name & "(红色拼接失败), "
+                End If
+            Else
+                FileCopy rawFiles(1), outRed
+            End If
+        End If
+        
+        '--- 4.3 拼接蓝色组：上下拼接 ---
+        Dim outBlue As String
+        outBlue = outFolder & safeName & "_蓝.png"
+        
+        If Len(rawFiles(3)) > 0 And FileExists(rawFiles(3)) Then
+            If Len(rawFiles(4)) > 0 And FileExists(rawFiles(4)) Then
+                If Not MergeTwoImagesVertical(wbTarget, rawFiles(3), rawFiles(4), outBlue) Then
+                    errMsg = errMsg & ws.Name & "(蓝色拼接失败), "
+                End If
+            Else
+                FileCopy rawFiles(3), outBlue
+            End If
+        End If
+        
+        processedCount = processedCount + 1
+        
+    Next ws
+    
+    '--- 5. 关闭目标文件 ---
+    If Not wasOpen Then wbTarget.Close SaveChanges:=False
+    
+    '--- 6. 汇总提示 ---
+    Dim msg As String
+    msg = "导出完成!" & vbCrLf & _
+          "拼接图输出: " & outFolder & vbCrLf & _
+          "原图输出: " & rawFolder & vbCrLf & _
+          "处理产品数: " & processedCount & vbCrLf & _
+          "高清倍数: " & EXPORT_SCALE & vbCrLf & _
+          "文字线条倍数: " & APPEARANCE_SCALE & vbCrLf & _
+          "耗时: " & Format(Timer - t0, "0.00") & " 秒"
+    
+    If Len(errMsg) > 0 Then
+        msg = msg & vbCrLf & vbCrLf & "异常:" & vbCrLf & Left(errMsg, Len(errMsg) - 2)
+    End If
+    
+    MsgBox msg, vbInformation, "处理结果"
+
+CleanUp:
+    Application.ScreenUpdating = oldScreenUpdating
+    Application.Calculation = oldCalculation
+    Application.EnableEvents = oldEnableEvents
+    Application.DisplayAlerts = oldDisplayAlerts
+    Exit Sub
+
+MainErr:
+    MsgBox "运行出错: " & Err.Number & vbCrLf & Err.Description, vbExclamation, "错误"
+    Resume CleanUp
+    
+End Sub
+
+
+'==============================================================
+' 辅助函数: 检查chart是否存在
+'==============================================================
+Private Function ChartExists(ByVal ws As Worksheet, ByVal chartName As String) As Boolean
+    
+    Dim co As ChartObject
+    
+    On Error Resume Next
+    Set co = ws.ChartObjects(chartName)
+    On Error GoTo 0
+    
+    ChartExists = Not (co Is Nothing)
+    
+End Function
+
+
+'==============================================================
+' 辅助函数: 检查文件是否存在
+'==============================================================
+Private Function FileExists(ByVal filePath As String) As Boolean
+    
+    FileExists = (Len(Dir(filePath)) > 0)
+    
+End Function
+
+
+'==============================================================
+' 辅助函数: 导出chart，带渲染等待和重试机制
+'
+' 关键改造:
+'   1. 复制原图表到临时sheet
+'   2. 放大临时图表尺寸，提高导出像素
+'   3. 同步放大字体、坐标轴数字、图例、线条、标记
+'   4. 导出高清PNG
+'   5. 删除临时sheet，不影响原图表
+'==============================================================
+Private Function ExportChartWithRetry(ByVal co As ChartObject, _
+                                       ByVal outputPath As String, _
+                                       ByVal maxRetries As Long) As Boolean
+    
+    Const MIN_VALID_SIZE As Long = 3000  ' 字节，小于此视为空白图
+    
+    Dim attempt As Long
+    Dim ws As Worksheet
+    Dim wb As Workbook
+    
+    Set ws = co.Parent
+    Set wb = ws.Parent
+    
+    For attempt = 1 To maxRetries
+        
+        Dim tmpSheet As Worksheet
+        Dim tmpCo As ChartObject
+        
+        On Error GoTo AttemptError
+        
+        '--- 1. 创建临时sheet ---
+        Set tmpSheet = wb.Sheets.Add(After:=wb.Sheets(wb.Sheets.Count))
+        tmpSheet.Name = MakeTempSheetName("_tmpExport_")
+        
+        '--- 2. 复制原图表到临时sheet ---
+        ws.Activate
+        co.Copy
+        
+        tmpSheet.Activate
+        tmpSheet.Paste
+        
+        Set tmpCo = tmpSheet.ChartObjects(tmpSheet.ChartObjects.Count)
+        
+        '--- 3. 关闭自动字体缩放，避免Excel自行改变比例 ---
+        On Error Resume Next
+        tmpCo.Chart.ChartArea.AutoScaleFont = False
+        On Error GoTo AttemptError
+        
+        '--- 4. 放大临时图表尺寸，提高导出像素 ---
+        tmpCo.Left = 0
+        tmpCo.Top = 0
+        tmpCo.Width = co.Width * EXPORT_SCALE
+        tmpCo.Height = co.Height * EXPORT_SCALE
+        
+        '--- 5. 同步放大字体、数字、线条、标记 ---
+        ScaleChartAppearance tmpCo.Chart, APPEARANCE_SCALE
+        
+        '--- 6. 刷新渲染 ---
+        tmpCo.Activate
+        tmpCo.Chart.Refresh
+        DoEvents
+        DoEvents
+        
+        WaitSeconds 0.5 * attempt
+        DoEvents
+        
+        '--- 7. 删除旧文件，避免缓存 ---
+        If Dir(outputPath) <> "" Then Kill outputPath
+        
+        '--- 8. 导出高清PNG ---
+        tmpCo.Chart.Export fileName:=outputPath, FilterName:="PNG"
+        
+        '--- 9. 验证文件大小 ---
+        Dim fSize As Long
+        
+        If FileExists(outputPath) Then
+            fSize = FileLen(outputPath)
+        Else
+            fSize = 0
+        End If
+        
+        '--- 10. 清理临时sheet ---
+        DeleteTempSheet tmpSheet
+        
+        Set tmpCo = Nothing
+        Set tmpSheet = Nothing
+        
+        If fSize >= MIN_VALID_SIZE Then
+            ExportChartWithRetry = True
+            Exit Function
+        End If
+        
+        Debug.Print "图片过小(" & fSize & " bytes), sheet=" & ws.Name & _
+                    " chart=" & co.Name & " attempt=" & attempt
+        
+        GoTo NextAttempt
+        
+AttemptError:
+        Debug.Print "导出错误(attempt " & attempt & "): " & Err.Number & " - " & Err.Description
+        Err.Clear
+        
+        On Error Resume Next
+        DeleteTempSheet tmpSheet
+        Set tmpCo = Nothing
+        Set tmpSheet = Nothing
+        On Error GoTo 0
+        
+NextAttempt:
+    Next attempt
+    
+    ExportChartWithRetry = False
+    
+End Function
+
+
+'==============================================================
+' 辅助函数: 同比放大图表内部视觉元素
+'
+' 处理对象:
+'   - 图表标题
+'   - 图例
+'   - 坐标轴刻度数字
+'   - 坐标轴标题
+'   - 坐标轴线
+'   - 网格线
+'   - 数据系列线条
+'   - 数据点标记
+'   - 数据标签
+'   - 图表内文本框
+'==============================================================
+Private Sub ScaleChartAppearance(ByVal ch As Chart, ByVal scaleFactor As Double)
+    
+    On Error Resume Next
+    
+    '--- 1. 防止Excel自动字体缩放干扰 ---
+    ch.ChartArea.AutoScaleFont = False
+    
+    '--- 2. 图表标题 ---
+    If ch.HasTitle Then
+        ch.ChartTitle.AutoScaleFont = False
+        TryScaleFontSize ch.ChartTitle.Font, scaleFactor
+    End If
+    
+    '--- 3. 图例 ---
+    If ch.HasLegend Then
+        ch.Legend.AutoScaleFont = False
+        TryScaleFontSize ch.Legend.Font, scaleFactor
+        TryScaleLineWeight ch.Legend.Format.Line, scaleFactor
+    End If
+    
+    '--- 4. 坐标轴、刻度标签、轴标题、网格线 ---
+    Dim axisTypes As Variant
+    Dim axisGroups As Variant
+    Dim axisType As Variant
+    Dim axisGroup As Variant
+    Dim ax As Axis
+    
+    axisTypes = Array(xlCategory, xlValue)
+    axisGroups = Array(xlPrimary, xlSecondary)
+    
+    For Each axisGroup In axisGroups
+        For Each axisType In axisTypes
+            
+            Set ax = Nothing
+            Set ax = ch.Axes(CLng(axisType), CLng(axisGroup))
+            
+            If Not ax Is Nothing Then
+                
+                ax.TickLabels.AutoScaleFont = False
+                TryScaleFontSize ax.TickLabels.Font, scaleFactor
+                
+                If ax.HasTitle Then
+                    ax.AxisTitle.AutoScaleFont = False
+                    TryScaleFontSize ax.AxisTitle.Font, scaleFactor
+                End If
+                
+                TryScaleLineWeight ax.Format.Line, scaleFactor
+                
+                If ax.HasMajorGridlines Then
+                    TryScaleLineWeight ax.MajorGridlines.Format.Line, scaleFactor
+                End If
+                
+                If ax.HasMinorGridlines Then
+                    TryScaleLineWeight ax.MinorGridlines.Format.Line, scaleFactor
+                End If
+                
+            End If
+            
+        Next axisType
+    Next axisGroup
+    
+    '--- 5. 数据系列线条、标记、数据标签 ---
+    Dim s As Series
+    
+    For Each s In ch.SeriesCollection
+        
+        TryScaleLineWeight s.Format.Line, scaleFactor
+        TryScaleMarkerSize s, scaleFactor
+        
+        If s.HasDataLabels Then
+            TryScaleFontSize s.DataLabels.Font, scaleFactor
+        End If
+        
+    Next s
+    
+    '--- 6. 图表区、绘图区边框 ---
+    TryScaleLineWeight ch.ChartArea.Format.Line, scaleFactor
+    TryScaleLineWeight ch.PlotArea.Format.Line, scaleFactor
+    
+    '--- 7. 图表数据表 ---
+    If ch.HasDataTable Then
+        TryScaleFontSize ch.DataTable.Font, scaleFactor
+        TryScaleLineWeight ch.DataTable.Format.Line, scaleFactor
+    End If
+    
+    '--- 8. 图表内文本框 ---
+    Dim shp As Shape
+    
+    For Each shp In ch.Shapes
+        TryScaleShapeText shp, scaleFactor
+        TryScaleLineWeight shp.Line, scaleFactor
+    Next shp
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+'==============================================================
+' 辅助函数: 安全放大字体
+'==============================================================
+Private Sub TryScaleFontSize(ByVal fontObj As Object, ByVal scaleFactor As Double)
+    
+    On Error Resume Next
+    
+    Dim oldSize As Double
+    oldSize = CDbl(fontObj.Size)
+    
+    If oldSize > 0 Then
+        fontObj.Size = oldSize * scaleFactor
+    End If
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+'==============================================================
+' 辅助函数: 安全放大线条粗细
+'==============================================================
+Private Sub TryScaleLineWeight(ByVal lineObj As Object, ByVal scaleFactor As Double)
+    
+    On Error Resume Next
+    
+    If lineObj.Visible Then
+        
+        Dim oldWeight As Double
+        oldWeight = CDbl(lineObj.Weight)
+        
+        If oldWeight > 0 Then
+            lineObj.Weight = oldWeight * scaleFactor
+        End If
+        
+    End If
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+'==============================================================
+' 辅助函数: 安全放大折线图标记大小
+'==============================================================
+Private Sub TryScaleMarkerSize(ByVal s As Series, ByVal scaleFactor As Double)
+    
+    On Error Resume Next
+    
+    If s.MarkerStyle <> xlMarkerStyleNone Then
+        
+        Dim oldSize As Double
+        Dim newSize As Double
+        
+        oldSize = CDbl(s.MarkerSize)
+        
+        If oldSize > 0 Then
+            newSize = oldSize * scaleFactor
+            
+            ' Excel标记大小不宜过大，超过72可能报错
+            If newSize > 72 Then newSize = 72
+            
+            s.MarkerSize = newSize
+        End If
+        
+    End If
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+'==============================================================
+' 辅助函数: 安全放大图表内文本框字号
+'==============================================================
+Private Sub TryScaleShapeText(ByVal shp As Shape, ByVal scaleFactor As Double)
+    
+    On Error Resume Next
+    
+    If shp.TextFrame2.HasText Then
+        
+        Dim oldSize As Double
+        oldSize = CDbl(shp.TextFrame2.TextRange.Font.Size)
+        
+        If oldSize > 0 Then
+            shp.TextFrame2.TextRange.Font.Size = oldSize * scaleFactor
+        End If
+        
+    End If
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+'==============================================================
+' 辅助函数: 横向拼接两张图片
+'   用途: 红色图表
+'   实现: 创建临时chart -> 放入两张图片 -> 导出
+'==============================================================
+Private Function MergeTwoImages(ByVal wb As Workbook, _
+                                ByVal leftPath As String, _
+                                ByVal rightPath As String, _
+                                ByVal outputPath As String) As Boolean
+    
+    On Error GoTo ErrHandler
+    
+    '--- 1. 先用临时Shape读取两张图的真实尺寸 ---
+    Dim tmpSheet As Worksheet
+    Set tmpSheet = wb.Sheets.Add(After:=wb.Sheets(wb.Sheets.Count))
+    tmpSheet.Name = MakeTempSheetName("_tmpMerge_")
+    
+    Dim probeLeft As Shape
+    Dim probeRight As Shape
+    
+    Set probeLeft = tmpSheet.Shapes.AddPicture( _
+        fileName:=leftPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=0, _
+        Top:=0, _
+        Width:=-1, _
+        Height:=-1)
+    
+    Set probeRight = tmpSheet.Shapes.AddPicture( _
+        fileName:=rightPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=0, _
+        Top:=0, _
+        Width:=-1, _
+        Height:=-1)
+    
+    Dim leftW As Single
+    Dim leftH As Single
+    Dim rightW As Single
+    Dim rightH As Single
+    
+    leftW = probeLeft.Width
+    leftH = probeLeft.Height
+    rightW = probeRight.Width
+    rightH = probeRight.Height
+    
+    Dim gap As Single
+    gap = MERGE_GAP * EXPORT_SCALE
+    
+    Dim totalW As Single
+    Dim totalH As Single
+    
+    totalW = leftW + rightW + gap
+    totalH = IIf(leftH > rightH, leftH, rightH)
+    
+    probeLeft.Delete
+    probeRight.Delete
+    
+    '--- 2. 创建chart容器 ---
+    Dim co As ChartObject
+    Set co = tmpSheet.ChartObjects.Add( _
+        Left:=0, _
+        Top:=0, _
+        Width:=totalW, _
+        Height:=totalH)
+    
+    Dim ch As Chart
+    Set ch = co.Chart
+    
+    ClearChartContainer ch
+    
+    '--- 3. 在chart内部添加两张图作为shape ---
+    Dim shpLeft As Shape
+    Dim shpRight As Shape
+    
+    Set shpLeft = ch.Shapes.AddPicture( _
+        fileName:=leftPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=0, _
+        Top:=0, _
+        Width:=leftW, _
+        Height:=leftH)
+    
+    Set shpRight = ch.Shapes.AddPicture( _
+        fileName:=rightPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=leftW + gap, _
+        Top:=0, _
+        Width:=rightW, _
+        Height:=rightH)
+    
+    '--- 4. 导出 ---
+    If Dir(outputPath) <> "" Then Kill outputPath
+    ch.Export fileName:=outputPath, FilterName:="PNG"
+    
+    '--- 5. 清理临时sheet ---
+    DeleteTempSheet tmpSheet
+    
+    MergeTwoImages = True
+    Exit Function
+
+ErrHandler:
+    Debug.Print "MergeTwoImages 错误: " & Err.Number & " - " & Err.Description
+    
+    On Error Resume Next
+    DeleteTempSheet tmpSheet
+    On Error GoTo 0
+    
+    MergeTwoImages = False
+    
+End Function
+
+
+'==============================================================
+' 辅助函数: 纵向拼接两张图片
+'   用途: 蓝色图表
+'   实现: 创建临时chart -> 放入两张图片 -> 导出
+'==============================================================
+Private Function MergeTwoImagesVertical(ByVal wb As Workbook, _
+                                        ByVal topPath As String, _
+                                        ByVal bottomPath As String, _
+                                        ByVal outputPath As String) As Boolean
+    
+    On Error GoTo ErrHandler
+    
+    '--- 1. 先用临时Shape读取两张图的真实尺寸 ---
+    Dim tmpSheet As Worksheet
+    Set tmpSheet = wb.Sheets.Add(After:=wb.Sheets(wb.Sheets.Count))
+    tmpSheet.Name = MakeTempSheetName("_tmpMergeV_")
+    
+    Dim probeTop As Shape
+    Dim probeBottom As Shape
+    
+    Set probeTop = tmpSheet.Shapes.AddPicture( _
+        fileName:=topPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=0, _
+        Top:=0, _
+        Width:=-1, _
+        Height:=-1)
+    
+    Set probeBottom = tmpSheet.Shapes.AddPicture( _
+        fileName:=bottomPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=0, _
+        Top:=0, _
+        Width:=-1, _
+        Height:=-1)
+    
+    Dim topW As Single
+    Dim topH As Single
+    Dim bottomW As Single
+    Dim bottomH As Single
+    
+    topW = probeTop.Width
+    topH = probeTop.Height
+    bottomW = probeBottom.Width
+    bottomH = probeBottom.Height
+    
+    Dim gap As Single
+    gap = MERGE_GAP * EXPORT_SCALE
+    
+    Dim totalW As Single
+    Dim totalH As Single
+    
+    totalW = IIf(topW > bottomW, topW, bottomW)
+    totalH = topH + bottomH + gap
+    
+    probeTop.Delete
+    probeBottom.Delete
+    
+    '--- 2. 创建chart容器 ---
+    Dim co As ChartObject
+    Set co = tmpSheet.ChartObjects.Add( _
+        Left:=0, _
+        Top:=0, _
+        Width:=totalW, _
+        Height:=totalH)
+    
+    Dim ch As Chart
+    Set ch = co.Chart
+    
+    ClearChartContainer ch
+    
+    '--- 3. 在chart内部添加两张图作为shape ---
+    Dim shpTop As Shape
+    Dim shpBottom As Shape
+    
+    Set shpTop = ch.Shapes.AddPicture( _
+        fileName:=topPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=0, _
+        Top:=0, _
+        Width:=topW, _
+        Height:=topH)
+    
+    Set shpBottom = ch.Shapes.AddPicture( _
+        fileName:=bottomPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=0, _
+        Top:=topH + gap, _
+        Width:=bottomW, _
+        Height:=bottomH)
+    
+    '--- 4. 导出 ---
+    If Dir(outputPath) <> "" Then Kill outputPath
+    ch.Export fileName:=outputPath, FilterName:="PNG"
+    
+    '--- 5. 清理临时sheet ---
+    DeleteTempSheet tmpSheet
+    
+    MergeTwoImagesVertical = True
+    Exit Function
+
+ErrHandler:
+    Debug.Print "MergeTwoImagesVertical 错误: " & Err.Number & " - " & Err.Description
+    
+    On Error Resume Next
+    DeleteTempSheet tmpSheet
+    On Error GoTo 0
+    
+    MergeTwoImagesVertical = False
+    
+End Function
+
+
+'==============================================================
+' 辅助函数: 清理临时chart容器
+'==============================================================
+Private Sub ClearChartContainer(ByVal ch As Chart)
+    
+    On Error Resume Next
+    
+    Do While ch.SeriesCollection.Count > 0
+        ch.SeriesCollection(1).Delete
+    Loop
+    
+    ch.HasTitle = False
+    
+    With ch.ChartArea.Format.Fill
+        .Visible = msoTrue
+        .ForeColor.RGB = RGB(255, 255, 255)
+        .Solid
+    End With
+    
+    ch.ChartArea.Format.Line.Visible = msoFalse
+    ch.PlotArea.Format.Fill.Visible = msoFalse
+    ch.PlotArea.Format.Line.Visible = msoFalse
+    
+    ch.Axes(xlCategory).Delete
+    ch.Axes(xlValue).Delete
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+'==============================================================
+' 辅助函数: 生成临时sheet名称
+'==============================================================
+Private Function MakeTempSheetName(ByVal prefix As String) As String
+    
+    Static counter As Long
+    
+    counter = counter + 1
+    MakeTempSheetName = Left(prefix & Format(Timer * 1000, "0") & "_" & counter, 31)
+    
+End Function
+
+
+'==============================================================
+' 辅助函数: 删除临时sheet，并恢复DisplayAlerts状态
+'==============================================================
+Private Sub DeleteTempSheet(ByRef tmpSheet As Worksheet)
+    
+    On Error Resume Next
+    
+    If Not tmpSheet Is Nothing Then
+        
+        Dim oldAlerts As Boolean
+        oldAlerts = Application.DisplayAlerts
+        
+        Application.DisplayAlerts = False
+        tmpSheet.Delete
+        Application.DisplayAlerts = oldAlerts
+        
+        Set tmpSheet = Nothing
+        
+    End If
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+'==============================================================
+' 辅助函数: 等待指定秒数
+'   用途: 给Excel图表渲染留出时间
+'==============================================================
+Private Sub WaitSeconds(ByVal seconds As Double)
+    
+    Dim startTime As Double
+    startTime = Timer
+    
+    Do While Timer - startTime < seconds
+        DoEvents
+    Loop
+    
+End Sub
+

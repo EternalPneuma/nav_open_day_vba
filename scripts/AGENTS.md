@@ -1,37 +1,30 @@
-# SCRIPTS KNOWLEDGE BASE
+# scripts 目录指引
 
-## OVERVIEW
-Python utilities prepare Excel data for the later VBA workflow; keep them root-relative, log-heavy, and compatible with Chinese workbook names.
+## 职责
+- `merge_excel_files.py` 是 Python 主入口：从 `181-固收上层` 合并每日 Excel，写 `多套账净值查询.xlsx`，并更新 `上层产品净值数据库.xlsm` 的 `净值数据` sheet。
+- `tools/analyze_excel_structure.py` 用于生成工作簿结构 JSON；`tools/list_sheet_fields.py` 用于快速查看数据库各 sheet 字段和非空记录数。
+- `vba/` 下已有两条重构后的 VBA 流水线：`data/`（导入、开放日计算、分类表现报表）和 `chart/`（导入、检查、汇总、图表、图片、展示回填）。
 
-## WHERE TO LOOK
-| Task | Location | Notes |
-|------|----------|-------|
-| Main merge/import | `merge_excel_files.py` | Reads source directory, writes merged workbook, updates `.xlsm` database sheet |
-| Structure report | `tools/analyze_excel_structure.py` | Single-workbook metadata extractor |
-| Quick field listing | `tools/list_sheet_fields.py` | Prints every sheet's field names and non-null record counts to console |
-| Future VBA modules | `vba/` | Child scope has VBA-specific rules |
+## Python 约定
+- 路径参数按项目根目录相对路径传入；脚本内部通过自身位置推导根目录，不要硬编码绝对路径。
+- 日志和操作者可见信息保持中文。
+- 保留 `merge_excel_files.py` 的去重契约：业务列哈希去重，唯一行写 `合并数据`，重复行写 `重复数据`。
+- 保留 `source_file`、`source_sheet`；它们是每日输入文件审计线索，也被 VBA 增量导入逻辑借鉴。
+- 表头探测默认扫描前 30 行；若改动，同步检查 merge、analysis 和 VBA data 导入逻辑。
+- 类型转换保持保守：日期列按日期尝试，其他 object 列只有 80% 以上可解析才转数值。
+- 写 `.xlsm` 必须 `openpyxl.load_workbook(..., keep_vba=True)`，只替换目标数据 sheet。
 
-## CONVENTIONS
-- Script entry points accept optional positional paths; defaults are embedded near each `main()`.
-- Keep log/user messages in Chinese to match operator workflow.
-- Preserve the duplicate-handling contract in `merge_excel_files.py`: hash business columns, write unique rows to `合并数据`, duplicate rows to `重复数据`.
-- Preserve source traceability columns `source_file` and `source_sheet` in merged data.
-- Header detection scans up to 30 rows; if changing it, update both merge and analysis scripts or document why they diverge.
-- Type conversion is conservative: date-like column names convert to datetime; other object columns convert to numeric only when at least 80% parse.
-- For `.xlsm` writes, use `openpyxl.load_workbook(..., keep_vba=True)` and replace only the target data sheet.
-
-## COMMANDS
+## 命令
 ```powershell
 uv sync
 uv run python scripts/merge_excel_files.py
 uv run python scripts/tools/analyze_excel_structure.py
 uv run python scripts/tools/list_sheet_fields.py
 uv run python scripts/tools/list_sheet_fields.py "上层产品净值数据库.xlsm"
-uv run python -m py_compile scripts/merge_excel_files.py scripts/tools/analyze_excel_structure.py
+uv run python -m py_compile scripts/merge_excel_files.py scripts/tools/analyze_excel_structure.py scripts/tools/list_sheet_fields.py
 ```
 
-## ANTI-PATTERNS
-- Do not hard-code absolute paths; current scripts are portable from repo root.
-- Do not drop `source_file`/`source_sheet`; they are the audit trail for daily Excel inputs.
-- Do not change the database sheet name `净值数据` without updating downstream VBA assumptions.
-- Do not make `outputs/` a hand-edited input; it is generated analysis/log output.
+## 不要做
+- 不要删除或改名 `净值数据`，下游 VBA 依赖它。
+- 不要把 `outputs/` 当手工维护输入；它是分析和日志输出。
+- 不要把 `scripts/vba` 当“未来目录”；当前已有可运行模块，且文件多为无扩展名文本。

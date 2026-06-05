@@ -1,10 +1,10 @@
 Option Explicit
 
-' 模块用途：从相对目录 181-固收上层 增量导入每日净值 Excel 到本工作簿的“净值数据”工作表。
-' 使用方式：将本文件内容复制到 上层产品净值数据库.xlsm 的标准模块中，运行 导入181固收上层增量净值数据。
+' 模块用途：从相对目录 181-固收上层 增量导入每日净值 Excel 到本工作簿的“上层产品净值数据(181)”工作表。
+' 使用方式：将本文件内容复制到 上层产品净值数据库.xlsm 的标准模块中，运行 Step01AutoInput。
 
 Private Const SOURCE_FOLDER_NAME As String = "181-固收上层"
-Private Const TARGET_SHEET_NAME As String = "净值数据"
+Private Const TARGET_SHEET_NAME As String = "上层产品净值数据(181)"
 Private Const DATE_HEADER As String = "日期"
 Private Const SOURCE_FILE_HEADER As String = "source_file"
 Private Const SOURCE_SHEET_HEADER As String = "source_sheet"
@@ -12,11 +12,7 @@ Private Const MAX_HEADER_SCAN_ROWS As Long = 30
 Private Const SOURCE_FILE_PREFIX As String = "HS-181_多账套净值查询_"
 Private Const SOURCE_FILE_EXT As String = ".xlsx"
 
-Public Sub STEP1导入增量净值数据()
-    ImportNAVIncremental181Core
-End Sub
-
-Public Sub S1ImportNAV()
+Public Sub Step01AutoInput()
     ImportNAVIncremental181Core
 End Sub
 

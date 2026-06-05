@@ -1,0 +1,271 @@
+Attribute VB_Name = "生成数据报告"
+Option Explicit
+
+'==============================================================
+' 模块: 生成数据完整度报告
+' 功能: 扫描Sheet2,按产品编号汇总统计,输出到Sheet3
+'       每次运行清空重建,按产品编号升序
+'==============================================================
+
+Public Sub STEP2生成数据报告()
+    
+    Dim t0 As Double: t0 = Timer
+    
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+    
+    Dim wbDB As Workbook: Set wbDB = ThisWorkbook
+    Dim wsDim As Worksheet: Set wsDim = wbDB.Sheets("Sheet1")
+    Dim wsData As Worksheet: Set wsData = wbDB.Sheets("Sheet2")
+    
+    '--- 1. 准备/获取Sheet3 ---
+    Dim wsRpt As Worksheet
+    On Error Resume Next
+    Set wsRpt = wbDB.Sheets("Sheet3")
+    On Error GoTo 0
+    
+    If wsRpt Is Nothing Then
+        Set wsRpt = wbDB.Sheets.Add(After:=wsData)
+        wsRpt.Name = "Sheet3"
+    Else
+        wsRpt.Cells.Clear
+    End If
+    
+    '--- 2. 读取维度表: 产品编号 -> 产品简称 ---
+    Dim dimDict As Object
+    Set dimDict = CreateObject("Scripting.Dictionary")
+    
+    Dim dimLastRow As Long
+    dimLastRow = wsDim.Cells(wsDim.Rows.Count, "A").End(xlUp).row
+    
+    If dimLastRow >= 2 Then
+        Dim dimArr As Variant
+        dimArr = wsDim.Range("A2:C" & dimLastRow).Value
+        Dim i As Long
+        For i = 1 To UBound(dimArr, 1)
+            Dim dCode As String, dShort As String
+            dCode = Trim(CStr(dimArr(i, 1)))
+            dShort = Trim(CStr(dimArr(i, 3)))
+            If Len(dCode) > 0 Then dimDict(dCode) = dShort
+        Next i
+    End If
+    
+    '--- 3. 读取Sheet2全部数据 ---
+    Dim dataLastRow As Long
+    dataLastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).row
+    
+    If dataLastRow < 2 Then
+        MsgBox "Sheet2无数据。", vbExclamation
+        GoTo CleanUp
+    End If
+    
+    ' 只读A列(日期)、B列(产品编号)、D列(净值) —— 减少内存占用
+    Dim dataArr As Variant
+    dataArr = wsData.Range("A2:D" & dataLastRow).Value
+    
+    '--- 4. 按产品编号分组,边读边统计 ---
+    ' 每个产品维护: 日期数组、净值数组,后续排序后计算各项
+    Dim groupDict As Object
+    Set groupDict = CreateObject("Scripting.Dictionary")
+    
+    Dim j As Long
+    Dim curDate As Variant, curCode As String, curNav As Variant
+    
+    For j = 1 To UBound(dataArr, 1)
+        curDate = dataArr(j, 1)
+        curCode = Trim(CStr(dataArr(j, 2)))
+        curNav = dataArr(j, 4)
+        
+        If Len(curCode) = 0 Then GoTo NextRow
+        If IsEmpty(curDate) Or Not IsDate(curDate) Then GoTo NextRow
+        If Not IsNumeric(curNav) Then GoTo NextRow
+        If CDbl(curNav) <= 0 Then GoTo NextRow
+        
+        ' 取出/创建该产品的记录(用Collection存"日期|净值"字符串)
+        Dim subColl As Collection
+        If groupDict.Exists(curCode) Then
+            Set subColl = groupDict(curCode)
+        Else
+            Set subColl = New Collection
+            groupDict.Add curCode, subColl
+        End If
+        
+        ' 用Long(日期序列号)+":"+净值 编码,后续解析
+        subColl.Add CLng(CDbl(CDate(curDate))) & ":" & CDbl(curNav)
+        
+NextRow:
+    Next j
+    
+    If groupDict.Count = 0 Then
+        MsgBox "Sheet2中没有有效数据。", vbExclamation
+        GoTo CleanUp
+    End If
+    
+    '--- 5. 收集所有产品编号并升序排序 ---
+    Dim codes() As String
+    ReDim codes(0 To groupDict.Count - 1)
+    Dim idx As Long: idx = 0
+    Dim k As Variant
+    For Each k In groupDict.keys
+        codes(idx) = CStr(k)
+        idx = idx + 1
+    Next k
+    SortStringArray codes
+    
+    '--- 6. 写入表头 ---
+    Dim headers As Variant
+    headers = Array("产品编号", "产品简称", _
+                    "净值日期最小值", "净值日期最大值", _
+                    "净值最小值", "净值最大值", _
+                    "数据条数", "总跨度(天)", _
+                    "最大连续缺失天数", _
+                    "首日净值", "末日净值", "累计涨跌幅(%)")
+    
+    Dim nCols As Long: nCols = UBound(headers) + 1
+    wsRpt.Range(wsRpt.Cells(1, 1), wsRpt.Cells(1, nCols)).Value = headers
+    wsRpt.Range(wsRpt.Cells(1, 1), wsRpt.Cells(1, nCols)).Font.Bold = True
+    
+    '--- 7. 逐产品计算并写入 ---
+    Dim nProducts As Long: nProducts = UBound(codes) + 1
+    Dim outArr() As Variant
+    ReDim outArr(1 To nProducts, 1 To nCols)
+    
+    Dim p As Long
+    For p = 0 To nProducts - 1
+        Dim code As String: code = codes(p)
+        Set subColl = groupDict(code)
+        Dim n As Long: n = subColl.Count
+        
+        ' 取出该产品的日期数组和净值数组
+        Dim dArr() As Long
+        Dim vArr() As Double
+        ReDim dArr(1 To n)
+        ReDim vArr(1 To n)
+        
+        For i = 1 To n
+            Dim parts() As String
+            parts = Split(subColl(i), ":")
+            dArr(i) = CLng(parts(0))
+            vArr(i) = CDbl(parts(1))
+        Next i
+        
+        ' 按日期升序排序两个数组(联合排序)
+        SortByDate dArr, vArr
+        
+        ' 计算统计值
+        Dim minDate As Long, maxDate As Long
+        minDate = dArr(1)
+        maxDate = dArr(n)
+        
+        Dim minNav As Double, maxNav As Double
+        minNav = vArr(1)
+        maxNav = vArr(1)
+        For i = 2 To n
+            If vArr(i) < minNav Then minNav = vArr(i)
+            If vArr(i) > maxNav Then maxNav = vArr(i)
+        Next i
+        
+        Dim spanDays As Long: spanDays = maxDate - minDate
+        
+        ' 最大连续缺失天数 = max(相邻间隔 - 1)
+        Dim maxGap As Long: maxGap = 0
+        For i = 2 To n
+            Dim gap As Long: gap = dArr(i) - dArr(i - 1) - 1
+            If gap > maxGap Then maxGap = gap
+        Next i
+        
+        Dim firstNav As Double: firstNav = vArr(1)
+        Dim lastNav As Double: lastNav = vArr(n)
+        Dim retPct As Double
+        If firstNav > 0 Then
+            retPct = (lastNav / firstNav - 1) * 100
+        End If
+        
+        ' 写入行
+        Dim row As Long: row = p + 1
+        outArr(row, 1) = code
+        outArr(row, 2) = dimDict(code)  ' 找不到会返回空字符串
+        outArr(row, 3) = CDate(minDate)
+        outArr(row, 4) = CDate(maxDate)
+        outArr(row, 5) = minNav
+        outArr(row, 6) = maxNav
+        outArr(row, 7) = n
+        outArr(row, 8) = spanDays
+        outArr(row, 9) = maxGap
+        outArr(row, 10) = firstNav
+        outArr(row, 11) = lastNav
+        outArr(row, 12) = retPct
+    Next p
+    
+    ' 一次性写入
+    wsRpt.Range(wsRpt.Cells(2, 1), wsRpt.Cells(1 + nProducts, nCols)).Value = outArr
+    
+    '--- 8. 格式化 ---
+    ' 日期列
+    wsRpt.Range(wsRpt.Cells(2, 3), wsRpt.Cells(1 + nProducts, 4)).NumberFormat = "yyyy-mm-dd"
+    ' 净值列(4位小数)
+    wsRpt.Range(wsRpt.Cells(2, 5), wsRpt.Cells(1 + nProducts, 6)).NumberFormat = "0.0000"
+    wsRpt.Range(wsRpt.Cells(2, 10), wsRpt.Cells(1 + nProducts, 11)).NumberFormat = "0.0000"
+    ' 涨跌幅(2位小数+%)
+    wsRpt.Range(wsRpt.Cells(2, 12), wsRpt.Cells(1 + nProducts, 12)).NumberFormat = "0.00"
+    ' 自适应列宽
+    wsRpt.Columns("A:L").AutoFit
+    ' 冻结首行
+    wsRpt.Activate
+    wsRpt.Range("A2").Select
+    ActiveWindow.FreezePanes = True
+    
+    MsgBox "完整度报告已生成!" & vbCrLf & _
+           "产品数: " & nProducts & vbCrLf & _
+           "耗时: " & Format(Timer - t0, "0.00") & " 秒", _
+           vbInformation, "完成"
+
+CleanUp:
+    Application.ScreenUpdating = True
+    Application.Calculation = xlCalculationAutomatic
+    Application.EnableEvents = True
+    Application.DisplayAlerts = True
+End Sub
+
+
+'==============================================================
+' 辅助过程: 字符串数组升序排序(冒泡)
+'==============================================================
+Private Sub SortStringArray(ByRef arr() As String)
+    Dim n As Long: n = UBound(arr) - LBound(arr) + 1
+    If n < 2 Then Exit Sub
+    
+    Dim i As Long, j As Long, tmp As String
+    For i = LBound(arr) To UBound(arr) - 1
+        For j = LBound(arr) To UBound(arr) - 1 - (i - LBound(arr))
+            If arr(j) > arr(j + 1) Then
+                tmp = arr(j)
+                arr(j) = arr(j + 1)
+                arr(j + 1) = tmp
+            End If
+        Next j
+    Next i
+End Sub
+
+
+'==============================================================
+' 辅助过程: 按日期数组联合排序(日期+净值两个数组同步)
+'==============================================================
+Private Sub SortByDate(ByRef dArr() As Long, ByRef vArr() As Double)
+    Dim n As Long: n = UBound(dArr)
+    If n < 2 Then Exit Sub
+    
+    Dim i As Long, j As Long
+    Dim tmpD As Long, tmpV As Double
+    For i = 1 To n - 1
+        For j = 1 To n - i
+            If dArr(j) > dArr(j + 1) Then
+                tmpD = dArr(j): dArr(j) = dArr(j + 1): dArr(j + 1) = tmpD
+                tmpV = vArr(j): vArr(j) = vArr(j + 1): vArr(j + 1) = tmpV
+            End If
+        Next j
+    Next i
+End Sub
+
