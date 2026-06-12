@@ -6,6 +6,8 @@ Option Explicit
 '       为每个产品sheet生成4个chart(净值/收益率 × 红/蓝)
 '       - 收益率chart跳过开头连续的0值
 '       - X轴强制为日期轴,只显示首尾日期
+'       - 净值Y轴强制从1开始,收益率Y轴强制从0开始
+'       - 不输出末尾数据标签
 '==============================================================
 
 ' 模板文件名(与.xlsm同目录)
@@ -20,9 +22,7 @@ Private Const CHART_WIDTH As Single = 480
 Private Const CHART_HEIGHT_RED As Single = 280   ' 红色模板图表高度
 Private Const CHART_HEIGHT_BLUE As Single = 140  ' 蓝色模板图表高度
 Private Const CHART_GAP As Single = 20
-
-' 用于收集"触发Y轴下限0限制"的产品
-Private g_clipProducts As Object
+Private Const SHEET_DATA_SUMMARY As String = "数据摘要"
 
 Public Sub STEP4生成产品图表()
     
@@ -99,10 +99,9 @@ Public Sub STEP4生成产品图表()
     Dim processedCount As Long: processedCount = 0
     Dim errSheets As String: errSheets = ""
     
-    ' 初始化收集器
-    Set g_clipProducts = CreateObject("Scripting.Dictionary")
-    
     For Each ws In wbTarget.Worksheets
+        If ws.Name = SHEET_DATA_SUMMARY Then GoTo NextSheet
+        
         ' 检查sheet是否有有效数据
         Dim lastRow As Long
         lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).row
@@ -188,18 +187,6 @@ NextSheet:
           "耗时: " & Format(Timer - t0, "0.00") & " 秒"
     If Len(errSheets) > 0 Then
         msg = msg & vbCrLf & vbCrLf & "以下sheet处理出错:" & vbCrLf & Left(errSheets, Len(errSheets) - 2)
-    End If
-    
-    ' 列出触发"收益率Y轴下限强制为0"的产品
-    If g_clipProducts.Count > 0 Then
-        Dim clipList As String: clipList = ""
-        Dim k As Variant
-        For Each k In g_clipProducts.keys
-            clipList = clipList & CStr(k) & ", "
-        Next k
-        msg = msg & vbCrLf & vbCrLf & _
-              "以下产品的收益率Y轴下限被强制设为0:" & vbCrLf & _
-              Left(clipList, Len(clipList) - 2)
     End If
     
     MsgBox msg, vbInformation, "处理结果"
@@ -307,82 +294,60 @@ Private Sub CreateChart(ByVal ws As Worksheet, _
         On Error GoTo 0
     End If
     
-    ' --- Y轴自适应 ---
+    ' --- Y轴自适应,并强制下限 ---
     Dim yMin As Double, yMax As Double
     Dim hasValid As Boolean
     hasValid = GetMinMaxFromRange(yRange, yMin, yMax)
     
     If hasValid Then
+        Dim padding As Double
         If yMax > yMin Then
-            Dim padding As Double
             padding = (yMax - yMin) * 0.1
-            
-            Dim finalMin As Double, finalMax As Double
-            finalMin = yMin - padding
-            finalMax = yMax + padding
-            
-            ' --- 对齐到档位 ---
-            Dim stepUnitMin As Double
-            Dim stepUnitMax As Double
-            
-            If isYieldChart Then
-                stepUnitMin = 0.1      ' 收益率下限：理论计算时仍按1位小数处理，但随后会强制为0
-                stepUnitMax = 1        ' 收益率上限：向上取整到整数
-            Else
-                stepUnitMin = 0.001    ' 净值下限：3位小数
-                stepUnitMax = 0.001    ' 净值上限：3位小数
-            End If
-            
-            finalMin = AlignDown(finalMin, stepUnitMin)
-            finalMax = AlignUp(finalMax, stepUnitMax)
-            
-            ' --- 强制Y轴下限 ---
-            ' 净值图固定为1；收益率图固定为0；最大值逻辑不变
-            If Not IsMissing(fixedYMin) Then
-                finalMin = CDbl(fixedYMin)
-                
-                ' 收益率图记录一下被强制设为0的产品
-                If isYieldChart Then
-                    If Not g_clipProducts Is Nothing Then
-                        g_clipProducts(ws.Name) = 1
-                    End If
-                End If
-            End If
-            
-            On Error Resume Next
-            With ch.Axes(xlValue)
-                .MinimumScale = finalMin
-                .MaximumScale = finalMax
-            End With
-            On Error GoTo 0
+        ElseIf isYieldChart Then
+            padding = 1
+        Else
+            padding = 0.001
         End If
+        
+        Dim finalMin As Double, finalMax As Double
+        finalMin = yMin - padding
+        finalMax = yMax + padding
+        
+        ' --- 对齐到档位 ---
+        Dim stepUnitMin As Double
+        Dim stepUnitMax As Double
+        
+        If isYieldChart Then
+            stepUnitMin = 0.1
+            stepUnitMax = 1
+        Else
+            stepUnitMin = 0.001
+            stepUnitMax = 0.001
+        End If
+        
+        finalMin = AlignDown(finalMin, stepUnitMin)
+        finalMax = AlignUp(finalMax, stepUnitMax)
+        
+        ' --- 强制Y轴下限 ---
+        ' 净值图固定为1；收益率图固定为0
+        If Not IsMissing(fixedYMin) Then
+            finalMin = CDbl(fixedYMin)
+        End If
+        
+        If finalMax <= finalMin Then
+            finalMax = finalMin + stepUnitMax
+        End If
+        
+        On Error Resume Next
+        With ch.Axes(xlValue)
+            .MinimumScale = finalMin
+            .MaximumScale = finalMax
+        End With
+        On Error GoTo 0
     End If
     
-    ' --- 数据标签: 先全开,再删除非末尾的 ---
-    ' 这种做法在某些Excel版本下比直接Point(N).HasDataLabel=True更可靠
-    s.HasDataLabels = True
-    
-    Dim ptCount As Long
-    ptCount = s.Points.Count
-    
-    Dim p As Long
-    For p = 1 To ptCount
-        If p < ptCount Then
-            ' 非末尾点,删除标签
-            s.Points(p).HasDataLabel = False
-        Else
-            ' 末尾点,配置标签
-            With s.Points(p).DataLabel
-                .ShowValue = True
-                .ShowCategoryName = False
-                .ShowSeriesName = False
-                .NumberFormat = "0.0000"
-                .Font.Name = "Times New Roman"
-                .Font.Size = 11
-                .Font.Bold = True
-            End With
-        End If
-    Next p
+    ' --- 不输出末尾数据标签 ---
+    s.HasDataLabels = False
     
     ' --- 强制ChartArea背景为白色,无边框 ---
     On Error Resume Next

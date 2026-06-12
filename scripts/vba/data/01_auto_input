@@ -1,9 +1,8 @@
 Option Explicit
 
-' 模块用途：从相对目录 181-固收上层 增量导入每日净值 Excel 到本工作簿的“上层产品净值数据(181)”工作表。
+' 模块用途：从本工作簿同级目录增量导入每日净值 Excel 到本工作簿的“上层产品净值数据(181)”工作表。
 ' 使用方式：将本文件内容复制到 上层产品净值数据库.xlsm 的标准模块中，运行 Step01AutoInput。
 
-Private Const SOURCE_FOLDER_NAME As String = "181-固收上层"
 Private Const TARGET_SHEET_NAME As String = "上层产品净值数据(181)"
 Private Const DATE_HEADER As String = "日期"
 Private Const SOURCE_FILE_HEADER As String = "source_file"
@@ -17,6 +16,15 @@ Public Sub Step01AutoInput()
 End Sub
 
 Private Sub ImportNAVIncremental181Core()
+    Dim confirmResult As VbMsgBoxResult
+    confirmResult = MsgBox("运行前请确认：" & vbCrLf & vbCrLf & _
+                           "1. 已经完成 181_多账套净值查询。" & vbCrLf & _
+                           "2. 查询结果已保存到当前数据库工作簿同级目录。" & vbCrLf & _
+                           "3. 文件名保持系统默认格式：" & SOURCE_FILE_PREFIX & "yyyymmdd" & SOURCE_FILE_EXT & vbCrLf & vbCrLf & _
+                           "确认后开始导入。", _
+                           vbQuestion + vbYesNo + vbDefaultButton2, "净值数据增量导入")
+    If confirmResult <> vbYes Then Exit Sub
+
     Dim appCalc As XlCalculation
     Dim oldScreenUpdating As Boolean
     Dim oldEnableEvents As Boolean
@@ -40,19 +48,20 @@ Private Sub ImportNAVIncremental181Core()
     Set wsTarget = ThisWorkbook.Worksheets(TARGET_SHEET_NAME)
 
     Dim sourceDir As String
-    sourceDir = ThisWorkbook.Path & Application.PathSeparator & SOURCE_FOLDER_NAME
+    sourceDir = ThisWorkbook.Path
+    If Len(sourceDir) = 0 Then
+        Err.Raise vbObjectError + 1001, , "当前数据库工作簿尚未保存，请先保存后再运行导入。"
+    End If
     If Dir(sourceDir, vbDirectory) = vbNullString Then
-        Err.Raise vbObjectError + 1001, , "源目录不存在：" & sourceDir
+        Err.Raise vbObjectError + 1002, , "源目录不存在：" & sourceDir
     End If
 
     Dim targetHeaderMap As Object
     Set targetHeaderMap = BuildHeaderMap(wsTarget, 1)
 
     If Not targetHeaderMap.Exists(DATE_HEADER) Then
-        Err.Raise vbObjectError + 1002, , "目标表缺少字段：" & DATE_HEADER
+        Err.Raise vbObjectError + 1003, , "目标表缺少字段：" & DATE_HEADER
     End If
-
-    EnsureAuditColumns wsTarget, targetHeaderMap
 
     Dim latestDate As Date
     Dim hasLatestDate As Boolean
@@ -93,6 +102,7 @@ Private Sub ImportNAVIncremental181Core()
     message = "增量导入完成" & vbCrLf & _
               "源目录：" & sourceDir & vbCrLf & _
               "导入前最新日期：" & latestText & vbCrLf & _
+              "符合要求表格数：" & processedFiles & vbCrLf & _
               "处理文件数：" & processedFiles & vbCrLf & _
               "新增行数：" & importedRows & vbCrLf & _
               "跳过旧日期行：" & skippedOldRows & vbCrLf & _
@@ -118,44 +128,17 @@ Private Sub ImportNewRowsFromFolder(ByVal sourceDir As String, ByVal wsTarget As
                                     ByVal existingKeys As Object, ByVal hasLatestDate As Boolean, ByVal latestDate As Date, _
                                     ByRef importedRows As Long, ByRef skippedOldRows As Long, ByRef skippedDuplicateRows As Long, _
                                     ByRef skippedBlankRows As Long, ByRef processedFiles As Long, ByRef failedFiles As String)
-    If hasLatestDate Then
-        ' 优化路径：根据目标表最新日期 + 文件名命名规律（HS-181_多账套净值查询_yyyyMMdd.xlsx）
-        ' 直接定位增量日期文件，避免遍历和打开全部 200+ 个历史文件
-        Dim nextDate As Date
-        nextDate = DateAdd("d", 1, latestDate)
+    Dim fileName As String
+    fileName = Dir(sourceDir & Application.PathSeparator & SOURCE_FILE_PREFIX & "*" & SOURCE_FILE_EXT)
 
-        Dim todayDate As Date
-        todayDate = Date
-
-        Do While nextDate <= todayDate
-            Dim incrementalFile As String
-            incrementalFile = SOURCE_FILE_PREFIX & Format$(nextDate, "yyyymmdd") & SOURCE_FILE_EXT
-
-            Dim incrementalPath As String
-            incrementalPath = sourceDir & Application.PathSeparator & incrementalFile
-
-            If Len(Dir(incrementalPath)) > 0 Then
-                processedFiles = processedFiles + 1
-                ImportOneWorkbook incrementalPath, incrementalFile, wsTarget, targetHeaderMap, existingKeys, _
-                                  hasLatestDate, latestDate, importedRows, skippedOldRows, skippedDuplicateRows, skippedBlankRows, failedFiles
-            End If
-
-            nextDate = DateAdd("d", 1, nextDate)
-        Loop
-    Else
-        ' 兜底路径：目标表无日期基准时，回退到遍历全部 .xlsx 文件
-        Dim fileName As String
-        fileName = Dir(sourceDir & Application.PathSeparator & "*.xlsx")
-
-        Do While Len(fileName) > 0
-            If Left$(fileName, 2) <> "~$" Then
-                processedFiles = processedFiles + 1
-                ImportOneWorkbook sourceDir & Application.PathSeparator & fileName, fileName, wsTarget, targetHeaderMap, existingKeys, _
-                                  hasLatestDate, latestDate, importedRows, skippedOldRows, skippedDuplicateRows, skippedBlankRows, failedFiles
-            End If
-            fileName = Dir()
-        Loop
-    End If
+    Do While Len(fileName) > 0
+        If IsMatchingSourceWorkbookName(fileName) Then
+            processedFiles = processedFiles + 1
+            ImportOneWorkbook sourceDir & Application.PathSeparator & fileName, fileName, wsTarget, targetHeaderMap, existingKeys, _
+                              hasLatestDate, latestDate, importedRows, skippedOldRows, skippedDuplicateRows, skippedBlankRows, failedFiles
+        End If
+        fileName = Dir()
+    Loop
 End Sub
 
 Private Sub ImportOneWorkbook(ByVal filePath As String, ByVal fileName As String, ByVal wsTarget As Worksheet, ByVal targetHeaderMap As Object, _
@@ -223,7 +206,7 @@ Private Sub ImportOneSheet(ByVal wsSource As Worksheet, ByVal fileName As String
                     If existingKeys.Exists(rowKey) Then
                         skippedDuplicateRows = skippedDuplicateRows + 1
                     Else
-                        AppendSourceRow wsSource, r, wsTarget, targetHeaderMap, sourceHeaderMap, fileName, wsSource.Name
+                        AppendSourceRow wsSource, r, wsTarget, targetHeaderMap, sourceHeaderMap
                         existingKeys.Add rowKey, True
                         importedRows = importedRows + 1
                     End If
@@ -236,17 +219,13 @@ Private Sub ImportOneSheet(ByVal wsSource As Worksheet, ByVal fileName As String
 End Sub
 
 Private Sub AppendSourceRow(ByVal wsSource As Worksheet, ByVal sourceRow As Long, ByVal wsTarget As Worksheet, ByVal targetHeaderMap As Object, _
-                            ByVal sourceHeaderMap As Object, ByVal fileName As String, ByVal sourceSheetName As String)
+                            ByVal sourceHeaderMap As Object)
     Dim targetRow As Long
     targetRow = LastUsedRow(wsTarget) + 1
 
     Dim header As Variant
     For Each header In targetHeaderMap.Keys
-        If CStr(header) = SOURCE_FILE_HEADER Then
-            wsTarget.Cells(targetRow, CLng(targetHeaderMap(header))).value = fileName
-        ElseIf CStr(header) = SOURCE_SHEET_HEADER Then
-            wsTarget.Cells(targetRow, CLng(targetHeaderMap(header))).value = sourceSheetName
-        ElseIf sourceHeaderMap.Exists(CStr(header)) Then
+        If sourceHeaderMap.Exists(CStr(header)) Then
             wsTarget.Cells(targetRow, CLng(targetHeaderMap(header))).value = wsSource.Cells(sourceRow, CLng(sourceHeaderMap(CStr(header)))).value
         End If
     Next header
@@ -304,23 +283,6 @@ Private Function BuildHeaderMap(ByVal ws As Worksheet, ByVal headerRow As Long) 
 
     Set BuildHeaderMap = dict
 End Function
-
-Private Sub EnsureAuditColumns(ByVal ws As Worksheet, ByVal headerMap As Object)
-    Dim lastCol As Long
-    lastCol = LastUsedColumn(ws)
-
-    If Not headerMap.Exists(SOURCE_FILE_HEADER) Then
-        lastCol = lastCol + 1
-        ws.Cells(1, lastCol).value = SOURCE_FILE_HEADER
-        headerMap.Add SOURCE_FILE_HEADER, lastCol
-    End If
-
-    If Not headerMap.Exists(SOURCE_SHEET_HEADER) Then
-        lastCol = lastCol + 1
-        ws.Cells(1, lastCol).value = SOURCE_SHEET_HEADER
-        headerMap.Add SOURCE_SHEET_HEADER, lastCol
-    End If
-End Sub
 
 Private Function GetLatestTargetDate(ByVal ws As Worksheet, ByVal dateCol As Long, ByRef latestDate As Date) As Boolean
     Dim lastRow As Long
@@ -409,6 +371,22 @@ End Function
 Private Function IsBusinessHeader(ByVal headerText As String) As Boolean
     IsBusinessHeader = (StrComp(headerText, SOURCE_FILE_HEADER, vbTextCompare) <> 0 And _
                         StrComp(headerText, SOURCE_SHEET_HEADER, vbTextCompare) <> 0)
+End Function
+
+Private Function IsMatchingSourceWorkbookName(ByVal fileName As String) As Boolean
+    If Left$(fileName, 2) = "~$" Then Exit Function
+    If StrComp(Right$(fileName, Len(SOURCE_FILE_EXT)), SOURCE_FILE_EXT, vbTextCompare) <> 0 Then Exit Function
+    If StrComp(Left$(fileName, Len(SOURCE_FILE_PREFIX)), SOURCE_FILE_PREFIX, vbTextCompare) <> 0 Then Exit Function
+
+    Dim dateText As String
+    dateText = Mid$(fileName, Len(SOURCE_FILE_PREFIX) + 1, 8)
+    If Len(dateText) <> 8 Or Not IsNumeric(dateText) Then Exit Function
+
+    Dim expectedNameLength As Long
+    expectedNameLength = Len(SOURCE_FILE_PREFIX) + 8 + Len(SOURCE_FILE_EXT)
+    If Len(fileName) <> expectedNameLength Then Exit Function
+
+    IsMatchingSourceWorkbookName = True
 End Function
 
 Private Function TryReadDate(ByVal value As Variant, ByRef outDate As Date) As Boolean

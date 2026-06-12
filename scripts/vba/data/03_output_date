@@ -37,6 +37,7 @@ Private Const DEFAULT_INCEPTION_NAV As Double = 1.001
 Private Const CAT_STABLE As String = "稳享长期限"
 Private Const CAT_DIRECT As String = "直销"
 Private Const CAT_BANK As String = "交行代销"
+Private Const CAT_YUANRONG_ANXIANG As String = "圆融安享"
 
 Public Sub Step03OutputDate()
     Call CalculateClassReportCore
@@ -85,6 +86,7 @@ Private Sub CalculateClassReportCore()
     ComputeStableLongTerm wbOutput, inceptionLookup
     ComputeDirectSales wbOutput, navLookup, inceptionLookup
     ComputeBankAgent wbOutput, navLookup, inceptionLookup
+    ComputeYuanRongAnXiang wbOutput, navLookup
 
     ' 6. Save as .xlsx
     Dim outputPath As String
@@ -106,7 +108,8 @@ Private Sub CalculateClassReportCore()
           "输出文件：" & outputPath & vbCrLf & vbCrLf & _
           "稳享长期限：" & rowCounters(CAT_STABLE) - 2 & " 条" & vbCrLf & _
           "直销：" & rowCounters(CAT_DIRECT) - 2 & " 条" & vbCrLf & _
-          "交行代销：" & rowCounters(CAT_BANK) - 2 & " 条" & vbCrLf & vbCrLf & _
+          "交行代销：" & rowCounters(CAT_BANK) - 2 & " 条" & vbCrLf & _
+          "圆融安享：" & rowCounters(CAT_YUANRONG_ANXIANG) - 2 & " 条" & vbCrLf & vbCrLf & _
           "基准日期：" & Format$(baselineDate, "yyyy-mm-dd")
     MsgBox msg, vbInformation, "产品分类表现报告"
 
@@ -147,6 +150,7 @@ Private Sub WriteCommonFields(ByVal wbOutput As Workbook, ByRef rowCounters As O
     Dim normalizedStable As String
     Dim normalizedDirect As String
     Dim normalizedBank As String
+    Dim normalizedYuanRongAnXiang As String
     Dim wsOutput As Worksheet
 
     If wbOutput Is Nothing Then Exit Sub
@@ -196,10 +200,12 @@ Private Sub WriteCommonFields(ByVal wbOutput As Workbook, ByRef rowCounters As O
     normalizedStable = NormalizeText(CAT_STABLE)
     normalizedDirect = NormalizeText(CAT_DIRECT)
     normalizedBank = NormalizeText(CAT_BANK)
+    normalizedYuanRongAnXiang = NormalizeText(CAT_YUANRONG_ANXIANG)
 
     If Not rowCounters.Exists(CAT_STABLE) Then rowCounters.Add CAT_STABLE, 2
     If Not rowCounters.Exists(CAT_DIRECT) Then rowCounters.Add CAT_DIRECT, 2
     If Not rowCounters.Exists(CAT_BANK) Then rowCounters.Add CAT_BANK, 2
+    If Not rowCounters.Exists(CAT_YUANRONG_ANXIANG) Then rowCounters.Add CAT_YUANRONG_ANXIANG, 2
 
     lastRow = LastUsedRow(srcWs)
 
@@ -214,6 +220,8 @@ Private Sub WriteCommonFields(ByVal wbOutput As Workbook, ByRef rowCounters As O
             targetSheetName = CAT_DIRECT
         ElseIf StrComp(categoryText, normalizedBank, vbTextCompare) = 0 Then
             targetSheetName = CAT_BANK
+        ElseIf StrComp(categoryText, normalizedYuanRongAnXiang, vbTextCompare) = 0 Then
+            targetSheetName = CAT_YUANRONG_ANXIANG
         Else
             GoTo ContinueRow
         End If
@@ -223,27 +231,42 @@ Private Sub WriteCommonFields(ByVal wbOutput As Workbook, ByRef rowCounters As O
 
         Set wsOutput = wbOutput.Worksheets(targetSheetName)
 
-        wsOutput.Cells(outRow, 1).Value = srcWs.Cells(r, seqCol).Value
-        wsOutput.Cells(outRow, 2).Value = srcWs.Cells(r, trustCodeCol).Value
-        wsOutput.Cells(outRow, 3).Value = srcWs.Cells(r, seriesCol).Value
-        wsOutput.Cells(outRow, 4).Value = srcWs.Cells(r, productNameCol).Value
-        wsOutput.Cells(outRow, 5).Value = srcWs.Cells(r, prevOpenCol).Value
-        wsOutput.Cells(outRow, 6).Value = srcWs.Cells(r, prevNavCol).Value
-        wsOutput.Cells(outRow, 7).Value = srcWs.Cells(r, baselineDateCol).Value
-        wsOutput.Cells(outRow, 8).Value = srcWs.Cells(r, baselineNavCol).Value
-        wsOutput.Cells(outRow, 9).Value = srcWs.Cells(r, nextOpenCol).Value
-        wsOutput.Cells(outRow, 10).Value = srcWs.Cells(r, theoreticalIntervalCol).Value
-        wsOutput.Cells(outRow, 11).Value = srcWs.Cells(r, intervalCol).Value
-        If targetSheetName = CAT_STABLE Then
-            wsOutput.Cells(outRow, 12).Value = srcWs.Cells(r, elapsedCol).Value
-        End If
+        If targetSheetName = CAT_YUANRONG_ANXIANG Then
+            wsOutput.Cells(outRow, 1).Value = srcWs.Cells(r, seqCol).Value
+            wsOutput.Cells(outRow, 2).Value = srcWs.Cells(r, trustCodeCol).Value
+            wsOutput.Cells(outRow, 3).Value = srcWs.Cells(r, seriesCol).Value
+            wsOutput.Cells(outRow, 4).Value = srcWs.Cells(r, productNameCol).Value
+            wsOutput.Cells(outRow, 5).Value = srcWs.Cells(r, baselineDateCol).Value
+            wsOutput.Cells(outRow, 6).Value = srcWs.Cells(r, baselineNavCol).Value
+            wsOutput.Cells(outRow, 7).Value = srcWs.Cells(r, nextOpenCol).Value
+            wsOutput.Cells(outRow, 8).Value = srcWs.Cells(r, theoreticalIntervalCol).Value
+            wsOutput.Cells(outRow, 9).Value = srcWs.Cells(r, intervalCol).Value
 
-        wsOutput.Cells(outRow, 5).NumberFormat = "yyyy-mm-dd"
-        wsOutput.Cells(outRow, 7).NumberFormat = "yyyy-mm-dd"
-        wsOutput.Cells(outRow, 9).NumberFormat = "yyyy-mm-dd"
+            wsOutput.Cells(outRow, 5).NumberFormat = "yyyy-mm-dd"
+            wsOutput.Cells(outRow, 7).NumberFormat = "yyyy-mm-dd"
+        Else
+            wsOutput.Cells(outRow, 1).Value = srcWs.Cells(r, seqCol).Value
+            wsOutput.Cells(outRow, 2).Value = srcWs.Cells(r, trustCodeCol).Value
+            wsOutput.Cells(outRow, 3).Value = srcWs.Cells(r, seriesCol).Value
+            wsOutput.Cells(outRow, 4).Value = srcWs.Cells(r, productNameCol).Value
+            wsOutput.Cells(outRow, 5).Value = srcWs.Cells(r, prevOpenCol).Value
+            wsOutput.Cells(outRow, 6).Value = srcWs.Cells(r, prevNavCol).Value
+            wsOutput.Cells(outRow, 7).Value = srcWs.Cells(r, baselineDateCol).Value
+            wsOutput.Cells(outRow, 8).Value = srcWs.Cells(r, baselineNavCol).Value
+            wsOutput.Cells(outRow, 9).Value = srcWs.Cells(r, nextOpenCol).Value
+            wsOutput.Cells(outRow, 10).Value = srcWs.Cells(r, theoreticalIntervalCol).Value
+            wsOutput.Cells(outRow, 11).Value = srcWs.Cells(r, intervalCol).Value
+            If targetSheetName = CAT_STABLE Then
+                wsOutput.Cells(outRow, 12).Value = srcWs.Cells(r, elapsedCol).Value
+            End If
 
-        If (targetSheetName = CAT_DIRECT Or targetSheetName = CAT_BANK) And benchmarkRateCol > 0 Then
-            wsOutput.Cells(outRow, 12).Value = srcWs.Cells(r, benchmarkRateCol).Value
+            wsOutput.Cells(outRow, 5).NumberFormat = "yyyy-mm-dd"
+            wsOutput.Cells(outRow, 7).NumberFormat = "yyyy-mm-dd"
+            wsOutput.Cells(outRow, 9).NumberFormat = "yyyy-mm-dd"
+
+            If (targetSheetName = CAT_DIRECT Or targetSheetName = CAT_BANK) And benchmarkRateCol > 0 Then
+                wsOutput.Cells(outRow, 12).Value = srcWs.Cells(r, benchmarkRateCol).Value
+            End If
         End If
 
         rowCounters(targetSheetName) = outRow + 1
@@ -822,6 +845,9 @@ Private Function CreateOutputWorkbook(ByRef baselineDate As Date) As Workbook
     Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
     ws.Name = "交行代销"
 
+    Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    ws.Name = "圆融安享"
+
     Set CreateOutputWorkbook = wb
     Exit Function
 
@@ -855,6 +881,14 @@ Private Sub WriteSheetHeaders(ByVal wbOutput As Workbook)
 
     Set ws = wbOutput.Worksheets("交行代销")
     headers = Array("序号", "信托计划代码", "系列", "产品名称", "上一开放日", "上一开放日净值", "基准日期", "基准日期净值", "下一开放日", "理论间隔", "实际间隔", "基准收益率", "上上一开放日", "上上一开放日净值", "运作时间", "上一周期年化", "当前周期年化", "7日年化", "28日年化", "成立以来年化")
+    For i = LBound(headers) To UBound(headers)
+        ws.Cells(1, i + 1).Value = headers(i)
+    Next i
+    ws.Rows(1).Font.Bold = True
+    ws.Columns.AutoFit
+
+    Set ws = wbOutput.Worksheets("圆融安享")
+    headers = Array("序号", "信托计划代码", "系列", "产品名称", "基准日期", "基准日期净值", "下一开放日", "理论间隔", "实际间隔", "7日年化", "28日年化")
     For i = LBound(headers) To UBound(headers)
         ws.Cells(1, i + 1).Value = headers(i)
     Next i
@@ -953,5 +987,53 @@ Private Sub ComputeDirectSales(ByVal wbOutput As Workbook, ByVal navLookup As Ob
         WriteInceptionAnnual ws, r, 15, trustCode, baselineNav, baselineDate, inceptionLookup
          
 ContinueDS:
+    Next r
+End Sub
+
+' --- 圆融安享：7日/28日年化计算 ---
+Private Sub ComputeYuanRongAnXiang(ByVal wbOutput As Workbook, ByVal navLookup As Object)
+    Dim ws As Worksheet
+    Set ws = wbOutput.Worksheets("圆融安享")
+
+    ' Col 1=序号, 2=信托计划代码, 3=系列, 4=产品名称
+    ' Col 5=基准日期, 6=基准日期净值, 7=下一开放日, 8=理论间隔, 9=实际间隔, 10=7日年化, 11=28日年化
+
+    Dim lastRow As Long, r As Long
+    Dim trustCode As Variant, baselineDate As Variant, baselineNav As Variant
+    Dim targetDate7 As Date, targetDate28 As Date
+    Dim nav7 As Variant, nav28 As Variant
+
+    lastRow = LastUsedRow(ws)
+
+    For r = 2 To lastRow
+        trustCode = ws.Cells(r, 2).Value
+        baselineDate = ws.Cells(r, 5).Value
+        baselineNav = ws.Cells(r, 6).Value
+
+        If IsEmpty(trustCode) Or IsError(trustCode) Then GoTo ContinueYRA
+        If IsEmpty(baselineDate) Or Not IsDate(baselineDate) Then GoTo ContinueYRA
+        If IsEmpty(baselineNav) Or IsError(baselineNav) Then GoTo ContinueYRA
+
+        ws.Cells(r, 10).ClearContents
+        targetDate7 = DateAdd("d", -7, CDate(baselineDate))
+        nav7 = LookupNAV(navLookup, trustCode, targetDate7)
+        If Not IsEmpty(nav7) And Not IsError(nav7) Then
+            If CDbl(nav7) <> 0 Then
+                ws.Cells(r, 10).Value = (CDbl(baselineNav) / CDbl(nav7) - 1) * (365 / 7)
+                ws.Cells(r, 10).NumberFormat = "0.00%"
+            End If
+        End If
+
+        ws.Cells(r, 11).ClearContents
+        targetDate28 = DateAdd("d", -28, CDate(baselineDate))
+        nav28 = LookupNAV(navLookup, trustCode, targetDate28)
+        If Not IsEmpty(nav28) And Not IsError(nav28) Then
+            If CDbl(nav28) <> 0 Then
+                ws.Cells(r, 11).Value = (CDbl(baselineNav) / CDbl(nav28) - 1) * (365 / 28)
+                ws.Cells(r, 11).NumberFormat = "0.00%"
+            End If
+        End If
+
+ContinueYRA:
     Next r
 End Sub
