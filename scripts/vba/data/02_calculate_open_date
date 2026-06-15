@@ -11,13 +11,15 @@ Option Explicit
 '   实际间隔 = 下一开放日 - 上一开放日（天数）
 '   上次开放实际间隔 = 上一开放日 - 上上一开放日（天数，无则留空）
 '   运作时间 = 基准日期 - 上一开放日（天数）
-'   日开/周开产品（开放日工作表中无数据）直接跳过，不填写。
+'   日开/周开产品（理论间隔=1/7）直接跳过，不填写开放日测算列。
+'   非日开/周开但开放日工作表中无数据的产品，在完成提示中单独列出。
 '   基准日期净值 = sheet"上层产品净值数据(181)"中匹配信托计划代码且日期=基准日期的单位净值。
 
 Private Const TARGET_SHEET_NAME As String = "产品分类"
 Private Const SOURCE_SHEET_NAME As String = "开放日"
 Private Const COL_SEQ As String = "序号"
 Private Const COL_OPEN_DATE As String = "开放日"
+Private Const COL_THEORETICAL_INTERVAL As String = "理论间隔"
 
 ' 待写入的列标题
 Private Const COL_NEXT_OPEN As String = "下一开放日"
@@ -84,6 +86,12 @@ Private Sub CalculateOpenDaysCore()
     Dim seqCol As Long
     seqCol = CLng(targetHeader(COL_SEQ))
 
+    If Not targetHeader.Exists(COL_THEORETICAL_INTERVAL) Then
+        Err.Raise vbObjectError + 2003, , "目标工作表缺少字段：" & COL_THEORETICAL_INTERVAL
+    End If
+    Dim theoreticalIntervalCol As Long
+    theoreticalIntervalCol = CLng(targetHeader(COL_THEORETICAL_INTERVAL))
+
     ' 定位信托计划代码列（产品分类 B列，用于 NAV join）
     If Not targetHeader.Exists(COL_TRUST_CODE) Then
         Err.Raise vbObjectError + 2002, , "目标工作表缺少字段：" & COL_TRUST_CODE
@@ -115,6 +123,8 @@ Private Sub CalculateOpenDaysCore()
 
     Dim processedCount As Long
     Dim skippedCount As Long
+    Dim missingOpenDayCount As Long
+    Dim missingOpenDayDetails As String
     Dim navMatchedCount As Long
     Dim r As Long
 
@@ -143,12 +153,19 @@ Private Sub CalculateOpenDaysCore()
             navMatchedCount = navMatchedCount + 1
         End If
 
+        ' 先按理论间隔识别日开/周开产品，跳过开放日测算。
+        If IsDailyOrWeeklyInterval(wsTarget.Cells(r, theoreticalIntervalCol).Value) Then
+            skippedCount = skippedCount + 1
+            processedCount = processedCount + 1
+            GoTo ContinueRow
+        End If
+
         ' ============================================================
         ' B. 开放日相关：仅对有开放日数据的产品计算
         ' ============================================================
         If Not openDayIndex.Exists(seqKey) Then
-            ' 日开/周开产品 — 已写入基准日期+净值，其余跳过
-            skippedCount = skippedCount + 1
+            missingOpenDayCount = missingOpenDayCount + 1
+            missingOpenDayDetails = missingOpenDayDetails & seqKey & "(" & NormalizeText(trustCode) & "), "
             processedCount = processedCount + 1
             GoTo ContinueRow
         End If
@@ -219,11 +236,20 @@ ContinueRow:
     Application.EnableEvents = oldEnableEvents
     Application.ScreenUpdating = oldScreenUpdating
 
-    MsgBox "开放日测算完成" & vbCrLf & _
-           "计算产品数：" & processedCount & vbCrLf & _
-           "跳过（日开/周开）：" & skippedCount & vbCrLf & _
-           "净值匹配数：" & navMatchedCount & vbCrLf & _
-           "基准日期：" & Format$(baselineDate, "yyyy-mm-dd"), vbInformation, "开放日测算"
+    Dim msg As String
+    msg = "开放日测算完成" & vbCrLf & _
+          "计算产品数：" & processedCount & vbCrLf & _
+          "跳过（日开/周开）：" & skippedCount & vbCrLf & _
+          "未被跳过但开放日未检测到：" & missingOpenDayCount & vbCrLf & _
+          "净值匹配数：" & navMatchedCount & vbCrLf & _
+          "基准日期：" & Format$(baselineDate, "yyyy-mm-dd")
+
+    If missingOpenDayCount > 0 Then
+        If Len(missingOpenDayDetails) > 2 Then missingOpenDayDetails = Left$(missingOpenDayDetails, Len(missingOpenDayDetails) - 2)
+        msg = msg & vbCrLf & vbCrLf & "未检测到开放日的产品：" & vbCrLf & TruncateMessageText(missingOpenDayDetails, 900)
+    End If
+
+    MsgBox msg, vbInformation, "开放日测算"
     Exit Sub
 
 CleanFail:
@@ -232,6 +258,25 @@ CleanFail:
     Application.ScreenUpdating = oldScreenUpdating
     MsgBox "开放日测算失败：" & err.Description, vbCritical, "开放日测算"
 End Sub
+
+Private Function IsDailyOrWeeklyInterval(ByVal intervalValue As Variant) As Boolean
+    Dim intervalText As String
+    intervalText = NormalizeText(intervalValue)
+    If Len(intervalText) = 0 Then Exit Function
+    If Not IsNumeric(intervalText) Then Exit Function
+
+    Dim intervalDays As Long
+    intervalDays = CLng(intervalText)
+    IsDailyOrWeeklyInterval = (intervalDays = 1 Or intervalDays = 7)
+End Function
+
+Private Function TruncateMessageText(ByVal textValue As String, ByVal maxLength As Long) As String
+    If Len(textValue) <= maxLength Then
+        TruncateMessageText = textValue
+    Else
+        TruncateMessageText = Left$(textValue, maxLength) & "..."
+    End If
+End Function
 
 ' ---------------------------------------------------------------------------
 ' 构建开放日索引：Dictionary(序号 → Collection of Date)

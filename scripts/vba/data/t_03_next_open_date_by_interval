@@ -1,13 +1,14 @@
 Option Explicit
 
-' 工具用途：补算"产品分类"中缺失的"下一开放日"。
+' 工具用途：按"产品分类"中的理论间隔，补充"开放日"工作表中缺失的下一开放日。
 ' 使用方式：将本文件内容复制到 上层产品净值数据库.xlsm 的标准模块中，运行 ToolFillNextOpenDateByInterval。
 '
 ' 初稿逻辑：
 '   1. 基准日期沿用 02_calculate_open_date：从"上层产品净值数据(181)"的"日期"列取最大日期。
-'   2. 先沿用 02_calculate_open_date 的逻辑：从"开放日"工作表中按"序号"查找 >= 基准日期的最小开放日。
+'   2. 从"开放日"工作表中按"序号"查找 >= 基准日期的最小开放日。
 '   3. 如果没有找到下一开放日，再按"产品分类"中的"理论间隔"推算，并追加写回"开放日"工作表。
 '   4. 理论间隔=1 直接跳过；7=下一个周三；183=本月/下月最后一个周三；其他正数按天数推算。
+' 注意：本工具不写入、不新增、不清理"产品分类"工作表中的任何输出列；产品分类结果统一由 02_calculate_open_date 负责刷新。
 
 Private Const TARGET_SHEET_NAME As String = "产品分类"
 Private Const SOURCE_SHEET_NAME As String = "开放日"
@@ -16,10 +17,9 @@ Private Const NAV_SHEET_NAME As String = "上层产品净值数据(181)"
 Private Const COL_SEQ As String = "序号"
 Private Const COL_OPEN_DATE As String = "开放日"
 Private Const COL_THEORETICAL_INTERVAL As String = "理论间隔"
-Private Const COL_NEXT_OPEN As String = "下一开放日"
 Private Const COL_NAV_DATE As String = "日期"
 
-Public Sub ToolFillNextOpenDateByInterval()
+Public Sub TOOL2FillNextOpenDateByInterval()
     FillNextOpenDateByIntervalCore
 End Sub
 
@@ -48,10 +48,8 @@ Private Sub FillNextOpenDateByIntervalCore()
 
     Dim seqCol As Long
     Dim intervalCol As Long
-    Dim nextCol As Long
     seqCol = CLng(targetHeader(COL_SEQ))
     intervalCol = CLng(targetHeader(COL_THEORETICAL_INTERVAL))
-    nextCol = EnsureColumn(wsTarget, targetHeader, COL_NEXT_OPEN)
 
     Dim baselineDate As Date
     baselineDate = GetBaselineDateFromNAV()
@@ -76,18 +74,18 @@ Private Sub FillNextOpenDateByIntervalCore()
     lastRow = LastUsedRow(wsTarget)
 
     Dim r As Long
-    Dim updatedFromOpenDay As Long
-    Dim updatedFromInterval As Long
+    Dim existingOpenDayCount As Long
+    Dim inferredCount As Long
     Dim appendedOpenDayCount As Long
     Dim skippedCount As Long
 
     For r = 2 To lastRow
         Dim seqKey As String
-        seqKey = NormalizeText(wsTarget.Cells(r, seqCol).Value)
+        seqKey = NormalizeText(wsTarget.Cells(r, seqCol).value)
         If Len(seqKey) = 0 Then GoTo ContinueRow
 
         Dim intervalText As String
-        intervalText = NormalizeText(wsTarget.Cells(r, intervalCol).Value)
+        intervalText = NormalizeText(wsTarget.Cells(r, intervalCol).value)
         If intervalText = "1" Then
             skippedCount = skippedCount + 1
             GoTo ContinueRow
@@ -104,17 +102,13 @@ Private Sub FillNextOpenDateByIntervalCore()
         End If
 
         If Not IsEmpty(nextDate) Then
-            wsTarget.Cells(r, nextCol).Value = CDate(nextDate)
-            wsTarget.Cells(r, nextCol).NumberFormat = "yyyy-mm-dd"
-            updatedFromOpenDay = updatedFromOpenDay + 1
+            existingOpenDayCount = existingOpenDayCount + 1
         Else
             Dim inferredDate As Variant
-            inferredDate = InferNextOpenDateByInterval(baselineDate, wsTarget.Cells(r, intervalCol).Value, currentOpenDate)
+            inferredDate = InferNextOpenDateByInterval(baselineDate, wsTarget.Cells(r, intervalCol).value, currentOpenDate)
 
             If Not IsEmpty(inferredDate) Then
-                wsTarget.Cells(r, nextCol).Value = CDate(inferredDate)
-                wsTarget.Cells(r, nextCol).NumberFormat = "yyyy-mm-dd"
-                updatedFromInterval = updatedFromInterval + 1
+                inferredCount = inferredCount + 1
 
                 If AppendOpenDayIfMissing(wsOpenDay, openDayIndex, openDaySeqCol, openDayDateCol, seqKey, CDate(inferredDate)) Then
                     appendedOpenDayCount = appendedOpenDayCount + 1
@@ -133,9 +127,10 @@ ContinueRow:
 
     MsgBox "下一开放日补算完成" & vbCrLf & _
            "基准日期：" & Format$(baselineDate, "yyyy-mm-dd") & vbCrLf & _
-           "按开放日表写入：" & updatedFromOpenDay & vbCrLf & _
-           "按理论间隔推算：" & updatedFromInterval & vbCrLf & _
+           "开放日表已有下一开放日：" & existingOpenDayCount & vbCrLf & _
+           "按理论间隔推算：" & inferredCount & vbCrLf & _
            "追加开放日记录：" & appendedOpenDayCount & vbCrLf & _
+           "产品分类写入：0" & vbCrLf & _
            "跳过：" & skippedCount, vbInformation, "下一开放日补算"
     Exit Sub
 
@@ -170,11 +165,11 @@ Private Function BuildOpenDayIndex() As Object
     Dim r As Long
     For r = 2 To lastRow
         Dim seqKey As String
-        seqKey = NormalizeText(ws.Cells(r, seqCol).Value)
+        seqKey = NormalizeText(ws.Cells(r, seqCol).value)
         If Len(seqKey) = 0 Then GoTo ContinueIdx
 
         Dim openDate As Date
-        If Not TryReadDate(ws.Cells(r, dateCol).Value, openDate) Then GoTo ContinueIdx
+        If Not TryReadDate(ws.Cells(r, dateCol).value, openDate) Then GoTo ContinueIdx
 
         If Not dict.Exists(seqKey) Then
             dict.Add seqKey, New Collection
@@ -251,7 +246,7 @@ Private Function GetNextWednesday(ByVal baselineDate As Date) As Date
     Dim daysToAdd As Long
     daysToAdd = 3 - Weekday(baselineDate, vbMonday)
     If daysToAdd <= 0 Then daysToAdd = daysToAdd + 7
-    GetNextWednesday = DateAdd("d", daysToAdd, DateValue(baselineDate))
+    GetNextWednesday = DateAdd("d", daysToAdd, dateValue(baselineDate))
 End Function
 
 Private Function GetLastWednesdayOfMonth(ByVal targetDate As Date) As Date
@@ -269,7 +264,7 @@ Private Function GetNextMonthEndWednesday(ByVal baselineDate As Date) As Date
     Dim currentMonthWednesday As Date
     currentMonthWednesday = GetLastWednesdayOfMonth(baselineDate)
 
-    If currentMonthWednesday >= DateValue(baselineDate) Then
+    If currentMonthWednesday >= dateValue(baselineDate) Then
         GetNextMonthEndWednesday = currentMonthWednesday
     Else
         GetNextMonthEndWednesday = GetLastWednesdayOfMonth(DateAdd("m", 1, baselineDate))
@@ -287,8 +282,8 @@ Private Function AppendOpenDayIfMissing(ByVal ws As Worksheet, ByVal openDayInde
     Dim nextRow As Long
     nextRow = LastUsedRow(ws) + 1
 
-    ws.Cells(nextRow, seqCol).Value = seqKey
-    ws.Cells(nextRow, dateCol).Value = openDate
+    ws.Cells(nextRow, seqCol).value = seqKey
+    ws.Cells(nextRow, dateCol).value = openDate
     ws.Cells(nextRow, dateCol).NumberFormat = "yyyy-mm-dd"
 
     If Not openDayIndex.Exists(seqKey) Then
@@ -304,7 +299,7 @@ Private Function OpenDayExists(ByVal openDayIndex As Object, ByVal seqKey As Str
 
     Dim d As Variant
     For Each d In openDayIndex(seqKey)
-        If DateValue(CDate(d)) = DateValue(openDate) Then
+        If dateValue(CDate(d)) = dateValue(openDate) Then
             OpenDayExists = True
             Exit Function
         End If
@@ -331,7 +326,7 @@ Private Function GetBaselineDateFromNAV() As Date
 
     For r = 2 To lastRow
         Dim parsedDate As Date
-        If TryReadDate(ws.Cells(r, dateCol).Value, parsedDate) Then
+        If TryReadDate(ws.Cells(r, dateCol).value, parsedDate) Then
             If Not found Or parsedDate > maxDate Then
                 maxDate = parsedDate
                 found = True
@@ -344,19 +339,6 @@ Private Function GetBaselineDateFromNAV() As Date
     End If
 
     GetBaselineDateFromNAV = maxDate
-End Function
-
-Private Function EnsureColumn(ByVal ws As Worksheet, ByVal headerMap As Object, ByVal columnName As String) As Long
-    If headerMap.Exists(columnName) Then
-        EnsureColumn = CLng(headerMap(columnName))
-        Exit Function
-    End If
-
-    Dim nextCol As Long
-    nextCol = LastUsedColumn(ws) + 1
-    ws.Cells(1, nextCol).Value = columnName
-    headerMap.Add columnName, nextCol
-    EnsureColumn = nextCol
 End Function
 
 Private Sub RequireHeader(ByVal headerMap As Object, ByVal columnName As String, ByVal sheetName As String)
@@ -376,7 +358,7 @@ Private Function BuildHeaderMap(ByVal ws As Worksheet, ByVal headerRow As Long) 
     Dim c As Long
     For c = 1 To lastCol
         Dim headerText As String
-        headerText = NormalizeText(ws.Cells(headerRow, c).Value)
+        headerText = NormalizeText(ws.Cells(headerRow, c).value)
         If Len(headerText) > 0 Then
             If Not dict.Exists(headerText) Then dict.Add headerText, c
         End If
@@ -423,7 +405,7 @@ End Function
 
 Private Function TryReadDate(ByVal value As Variant, ByRef outDate As Date) As Boolean
     If IsDate(value) Then
-        outDate = DateValue(CDate(value))
+        outDate = dateValue(CDate(value))
         TryReadDate = True
         Exit Function
     End If
@@ -444,7 +426,9 @@ Private Function TryReadDate(ByVal value As Variant, ByRef outDate As Date) As B
 
     textValue = Replace(Replace(textValue, ".", "-"), "/", "-")
     If IsDate(textValue) Then
-        outDate = DateValue(CDate(textValue))
+        outDate = dateValue(CDate(textValue))
         TryReadDate = True
     End If
 End Function
+
+

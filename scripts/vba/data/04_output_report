@@ -686,7 +686,9 @@ End Sub
 Private Function IsWeeklyInterval(ByVal intervalValue As Variant) As Boolean
     Dim intervalText As String
     intervalText = NormalizeText(intervalValue)
-    IsWeeklyInterval = (intervalText = "7" Or intervalText = "每周")
+    IsWeeklyInterval = (intervalText = "7" Or intervalText = "7天" Or intervalText = "7日" Or _
+                        intervalText = "每周" Or intervalText = "周开" Or _
+                        InStr(1, intervalText, "周频", vbTextCompare) > 0)
 End Function
 
 Private Function GetNextWednesday(ByVal baselineDate As Date) As Date
@@ -1069,19 +1071,19 @@ Private Sub WriteYuanRongAnXiangReport(ByVal wsSource As Worksheet, ByVal wsTarg
     wsTarget.Rows(2).RowHeight = 80
 
     currentRow = 3
-    currentRow = WriteYuanRongAnXiangSection(wsSource, wsTarget, currentRow, "日开")
+    currentRow = WriteYuanRongAnXiangSection(wsSource, wsTarget, currentRow, "日开", baselineDate)
 
     wsTarget.Range("A13:E13").Interior.Color = COLOR_WHITE
     wsTarget.Rows(13).RowHeight = 80
 
     currentRow = 14
-    currentRow = WriteYuanRongAnXiangSection(wsSource, wsTarget, currentRow, "周开")
+    currentRow = WriteYuanRongAnXiangSection(wsSource, wsTarget, currentRow, "周开", baselineDate)
 
     wsTarget.Range("A18:E18").Interior.Color = COLOR_WHITE
     wsTarget.Rows(18).RowHeight = 80
 
     currentRow = 19
-    currentRow = WriteYuanRongAnXiangSection(wsSource, wsTarget, currentRow, "月开")
+    currentRow = WriteYuanRongAnXiangSection(wsSource, wsTarget, currentRow, "月开", baselineDate)
 
     noteRow = currentRow
     riskRow = noteRow + 1
@@ -1119,7 +1121,8 @@ Private Sub WriteYuanRongAnXiangReport(ByVal wsSource As Worksheet, ByVal wsTarg
 End Sub
 
 Private Function WriteYuanRongAnXiangSection(ByVal wsSource As Worksheet, ByVal wsTarget As Worksheet, _
-                                             ByVal headerRow As Long, ByVal seriesName As String) As Long
+                                             ByVal headerRow As Long, ByVal seriesName As String, _
+                                             ByVal baselineDate As Date) As Long
     Dim firstDataRow As Long
     Dim lastDataRow As Long
     Dim nextRow As Long
@@ -1138,7 +1141,7 @@ Private Function WriteYuanRongAnXiangSection(ByVal wsSource As Worksheet, ByVal 
             intervalValue = wsSource.Cells(sourceRow, YRA_COL_THEORETICAL_INTERVAL).Value
 
             wsTarget.Cells(nextRow, 1).Value = wsSource.Cells(sourceRow, YRA_COL_PRODUCT_NAME).Value
-            WriteOpenDateCell wsTarget.Cells(nextRow, 2), wsSource.Cells(sourceRow, YRA_COL_NEXT_OPEN).Value
+            WriteNextOpenDateCell wsTarget.Cells(nextRow, 2), wsSource.Cells(sourceRow, YRA_COL_NEXT_OPEN).Value, intervalValue, baselineDate
             wsTarget.Cells(nextRow, 3).Value = FormatOpenFrequency(intervalValue)
             wsTarget.Cells(nextRow, 4).Value = wsSource.Cells(sourceRow, YRA_COL_7DAY_ANNUAL).Value
             wsTarget.Cells(nextRow, 5).Value = wsSource.Cells(sourceRow, YRA_COL_28DAY_ANNUAL).Value
