@@ -1,0 +1,12 @@
+Option Explicit
+
+' 模块用途：打开 VBA 操作面板。
+' 使用方式：
+' 1. 在 VBE 中插入标准模块，复制本文件内容。
+' 2. 插入 UserForm，名称改为 frmOperationPanel，复制 00_operation_panel_form 内容。
+' 3. 插入类模块，名称改为 clsOperationPanelButton，复制 00_operation_panel_button 内容。
+' 4. 运行 ShowOperationPanel。
+
+Public Sub ShowOperationPanel()
+    frmOperationPanel.Show vbModeless
+End Sub

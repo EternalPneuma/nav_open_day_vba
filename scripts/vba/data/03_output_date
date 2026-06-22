@@ -32,7 +32,7 @@ Private Const COL_PREV_PERIOD_ANNUAL As String = "上一周期年化"
 Private Const COL_7DAY_ANNUAL As String = "7日年化"
 Private Const COL_28DAY_ANNUAL As String = "28日年化"
 Private Const COL_INCEPTION_ANNUAL As String = "成立以来年化"
-Private Const DEFAULT_INCEPTION_NAV As Double = 1.001
+Private Const DEFAULT_INCEPTION_NAV As Double = 1
 
 Private Const CAT_STABLE As String = "稳享长期限"
 Private Const CAT_DIRECT As String = "直销"
@@ -385,6 +385,16 @@ Private Sub ComputeBankAgent(ByVal wbOutput As Workbook, ByVal navLookup As Obje
            And Not IsEmpty(elapsed) And Not IsError(elapsed) Then
             If CDbl(prevNav) <> 0 And CDbl(elapsed) > 0 Then
                 wsOutput.Cells(r, 17).Value = (CDbl(baselineNav) / CDbl(prevNav) - 1) * (365 / CDbl(elapsed))
+                wsOutput.Cells(r, 17).NumberFormat = "0.00%"
+            End If
+        End If
+
+        If Not IsEmpty(wsOutput.Cells(r, 10).Value) And Not IsError(wsOutput.Cells(r, 10).Value) _
+           And IsNumeric(wsOutput.Cells(r, 10).Value) _
+           And Not IsEmpty(elapsed) And Not IsError(elapsed) _
+           And IsNumeric(elapsed) Then
+            If CDbl(wsOutput.Cells(r, 10).Value) > 60 And CDbl(elapsed) < 7 Then
+                wsOutput.Cells(r, 17).Value = wsOutput.Cells(r, 16).Value
                 wsOutput.Cells(r, 17).NumberFormat = "0.00%"
             End If
         End If

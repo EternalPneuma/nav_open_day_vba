@@ -3,12 +3,29 @@ Option Explicit
 '==============================================================
 ' 模块: 导入净值数据
 ' 功能: 扫描当前文件夹下所有[净值数据浏览表 yyyy-mm-dd至yyyy-mm-dd.xlsx]
-'       将数据按主键(日期+产品编号)增量合并到Sheet2
+'       将数据按主键(日期+产品编号)增量合并到“绘图净值数据”
 '==============================================================
 
-Public Sub STEP1导入净值数据()
+Private Const TARGET_SHEET_NAME As String = "绘图净值数据"
+Private Const SOURCE_FILE_DESC As String = "净值数据浏览表 yyyy-mm-dd至yyyy-mm-dd.xlsx"
+
+Public Sub CSTEP1AutoInputNAV()
     
     Dim t0 As Double: t0 = Timer
+
+    Dim confirmResult As VbMsgBoxResult
+    confirmResult = MsgBox("运行前请确认：" & vbCrLf & vbCrLf & _
+                           "1. 已经下载或导出“净值表”的数据。" & vbCrLf & _
+                           "2. 净值表文件已保存到当前数据库工作簿同级目录。" & vbCrLf & _
+                           "3. 文件名保持系统默认格式：" & SOURCE_FILE_DESC & vbCrLf & vbCrLf & _
+                           "确认后开始导入。", _
+                           vbQuestion + vbYesNo + vbDefaultButton2, "绘图净值数据导入")
+    If confirmResult <> vbYes Then Exit Sub
+    
+    If Len(ThisWorkbook.Path) = 0 Then
+        MsgBox "当前数据库工作簿尚未保存，请先保存后再运行导入。", vbExclamation, "绘图净值数据导入"
+        Exit Sub
+    End If
     
     '--- 1. 准备环境 ---
     Application.ScreenUpdating = False
@@ -16,7 +33,7 @@ Public Sub STEP1导入净值数据()
     Application.EnableEvents = False
     
     Dim wbDB As Workbook: Set wbDB = ThisWorkbook
-    Dim wsDB As Worksheet: Set wsDB = wbDB.Sheets("Sheet2")
+    Dim wsDB As Worksheet: Set wsDB = wbDB.Worksheets(TARGET_SHEET_NAME)
     Dim folderPath As String: folderPath = wbDB.Path & "\"
     
     '--- 2. 扫描文件夹,正则匹配文件名,收集文件信息 ---
@@ -53,7 +70,7 @@ Public Sub STEP1导入净值数据()
     Loop
     
     If fileDict.Count = 0 Then
-        MsgBox "未找到任何[净值数据浏览表 yyyy-mm-dd至yyyy-mm-dd.xlsx]文件。" & vbCrLf & _
+        MsgBox "未找到任何[" & SOURCE_FILE_DESC & "]文件。" & vbCrLf & _
                "请检查当前文件夹: " & folderPath, vbExclamation, "提示"
         GoTo CleanUp
     End If
@@ -62,12 +79,12 @@ Public Sub STEP1导入净值数据()
     Dim sortedKeys() As String
     sortedKeys = SortKeys(fileDict.keys)
     
-    '--- 3. 读取数据库Sheet2现有数据到内存,建立主键索引 ---
+    '--- 3. 读取数据库“绘图净值数据”现有数据到内存,建立主键索引 ---
     Dim dbDict As Object
     Set dbDict = CreateObject("Scripting.Dictionary")
     
     Dim lastRow As Long, lastCol As Long
-    lastRow = wsDB.Cells(wsDB.Rows.Count, "A").End(xlUp).row
+    lastRow = wsDB.Cells(wsDB.Rows.Count, "A").End(xlUp).Row
     lastCol = 10  ' A-J共10列
     
     Dim dbData As Variant
@@ -75,7 +92,7 @@ Public Sub STEP1导入净值数据()
     
     If lastRow >= 2 Then
         hasExistingData = True
-        dbData = wsDB.Range(wsDB.Cells(2, 1), wsDB.Cells(lastRow, lastCol)).Value
+        dbData = wsDB.Range(wsDB.Cells(2, 1), wsDB.Cells(lastRow, lastCol)).value
         
         Dim i As Long, pk As String
         For i = 1 To UBound(dbData, 1)
@@ -114,12 +131,12 @@ Public Sub STEP1导入净值数据()
         End If
         On Error GoTo 0
         
-        Set wsSrc = wbSrc.Sheets("Sheet1")
-        srcLastRow = wsSrc.Cells(wsSrc.Rows.Count, "A").End(xlUp).row
+        Set wsSrc = wbSrc.Worksheets(1)
+        srcLastRow = wsSrc.Cells(wsSrc.Rows.Count, "A").End(xlUp).Row
         srcStartRow = FindSourceDataStartRow(wsSrc)
         
         If srcStartRow > 0 And srcLastRow >= srcStartRow Then
-            srcData = wsSrc.Range(wsSrc.Cells(srcStartRow, 1), wsSrc.Cells(srcLastRow, 10)).Value
+            srcData = wsSrc.Range(wsSrc.Cells(srcStartRow, 1), wsSrc.Cells(srcLastRow, 10)).value
             
             Dim j As Long, srcKey As String
             For j = 1 To UBound(srcData, 1)
@@ -154,10 +171,10 @@ Public Sub STEP1导入净值数据()
 NextFile:
     Next k
     
-    '--- 5. 一次性写回Sheet2 ---
+    '--- 5. 一次性写回“绘图净值数据” ---
     ' 5.1 先写回更新过的现有数据
     If hasExistingData And UBound(dbData, 1) > 0 Then
-        wsDB.Range(wsDB.Cells(2, 1), wsDB.Cells(1 + UBound(dbData, 1), 10)).Value = dbData
+        wsDB.Range(wsDB.Cells(2, 1), wsDB.Cells(1 + UBound(dbData, 1), 10)).value = dbData
     End If
     
     ' 5.2 再追加新增数据
@@ -175,16 +192,16 @@ NextFile:
         Next key
         
         Dim writeStartRow As Long
-        writeStartRow = wsDB.Cells(wsDB.Rows.Count, "A").End(xlUp).row + 1
+        writeStartRow = wsDB.Cells(wsDB.Rows.Count, "A").End(xlUp).Row + 1
         If writeStartRow < 2 Then writeStartRow = 2
         
         wsDB.Range(wsDB.Cells(writeStartRow, 1), _
-                   wsDB.Cells(writeStartRow + newRows.Count - 1, 10)).Value = writeArr
+                   wsDB.Cells(writeStartRow + newRows.Count - 1, 10)).value = writeArr
     End If
     
     ' 5.3 按A列日期升序排序(可选)
     Dim finalLastRow As Long
-    finalLastRow = wsDB.Cells(wsDB.Rows.Count, "A").End(xlUp).row
+    finalLastRow = wsDB.Cells(wsDB.Rows.Count, "A").End(xlUp).Row
     If finalLastRow >= 3 Then
         wsDB.Range(wsDB.Cells(2, 1), wsDB.Cells(finalLastRow, 10)).Sort _
             Key1:=wsDB.Cells(2, 1), Order1:=xlAscending, _
@@ -193,11 +210,11 @@ NextFile:
     End If
     
     MsgBox "导入完成!" & vbCrLf & _
-           "扫描文件数: " & fileDict.Count & vbCrLf & _
+           "符合要求净值表数: " & fileDict.Count & vbCrLf & _
            "覆盖更新: " & updatedCount & " 条" & vbCrLf & _
            "新增: " & insertedCount & " 条" & vbCrLf & _
            "耗时: " & Format(Timer - t0, "0.00") & " 秒", _
-           vbInformation, "导入结果"
+           vbInformation, "绘图净值数据导入结果"
 
 CleanUp:
     Application.ScreenUpdating = True
@@ -261,7 +278,7 @@ End Function
 '==============================================================
 Private Function FindSourceDataStartRow(ByVal ws As Worksheet) As Long
     Dim lastA As Long
-    lastA = ws.Cells(ws.Rows.Count, "A").End(xlUp).row
+    lastA = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
     
     If lastA < 1 Then Exit Function
     
@@ -278,8 +295,8 @@ Private Function FindSourceDataStartRow(ByVal ws As Worksheet) As Long
     )
     
     If Not headerCell Is Nothing Then
-        If headerCell.row < lastA Then
-            FindSourceDataStartRow = headerCell.row + 1
+        If headerCell.Row < lastA Then
+            FindSourceDataStartRow = headerCell.Row + 1
             Exit Function
         End If
     End If
@@ -287,7 +304,7 @@ Private Function FindSourceDataStartRow(ByVal ws As Worksheet) As Long
     '--- 2) 找不到“净值日期”时，查找A列第一个日期 ---
     Dim r As Long
     For r = 1 To lastA
-        If IsValidSourceDate(ws.Cells(r, "A").Value) Then
+        If IsValidSourceDate(ws.Cells(r, "A").value) Then
             FindSourceDataStartRow = r
             Exit Function
         End If
@@ -320,4 +337,5 @@ Private Function IsValidSourceDate(ByVal v As Variant) As Boolean
 BadValue:
     IsValidSourceDate = False
 End Function
+
 
