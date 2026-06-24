@@ -2,7 +2,7 @@ Option Explicit
 
 '==============================================================
 ' 模块: 清洗重复数据
-' 功能: 对Sheet2按"净值日期+产品编号"主键去重,
+' 功能: 对绘图净值数据按"净值日期+产品编号"主键去重,
 '       重复时保留物理位置靠后的记录(即最后导入的)
 '==============================================================
 
@@ -22,7 +22,7 @@ Public Sub Tool01_CleanDuplicateData()
     lastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).row
     
     If lastRow < 3 Then
-        MsgBox "Sheet2中数据少于2行,无需去重。", vbInformation
+        MsgBox "绘图净值数据中数据少于2行,无需去重。", vbInformation
         GoTo CleanUp
     End If
     
@@ -79,7 +79,7 @@ NextRow:
     
     '--- 3. 如果没有重复也没有无效行,提前退出 ---
     If duplicateCount = 0 And invalidCount = 0 Then
-        MsgBox "Sheet2无重复数据,无需清洗。" & vbCrLf & _
+        MsgBox "绘图净值数据无重复数据,无需清洗。" & vbCrLf & _
                "总记录数: " & totalRows, vbInformation
         GoTo CleanUp
     End If

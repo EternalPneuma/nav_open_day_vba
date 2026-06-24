@@ -2,18 +2,18 @@ Option Explicit
 
 '==============================================================
 ' 模块: 按产品编号删除数据
-' 功能: 用户输入产品编号 -> 预览统计 -> 二次确认 -> 删除Sheet2中所有该编号的记录
+' 功能: 用户输入产品编号 -> 预览统计 -> 二次确认 -> 删除绘图净值数据中所有该编号的记录
 '==============================================================
 
 Public Sub Tool02_DeleteByProductId()
     
     Dim wbDB As Workbook: Set wbDB = ThisWorkbook
-    Dim wsData As Worksheet: Set wsData = wbDB.Sheets("Sheet2")
+    Dim wsData As Worksheet: Set wsData = wbDB.Sheets("绘图净值数据")
     
     '--- 1. 用户输入产品编号 ---
     Dim userInput As String
     userInput = InputBox("请输入要删除的产品编号:" & vbCrLf & vbCrLf & _
-                         "提示: 该编号在Sheet2中的所有记录将被永久删除", _
+                         "提示: 该编号在绘图净值数据中的所有记录将被永久删除", _
                          "按产品编号删除数据")
     
     ' InputBox点取消返回空字符串
@@ -27,12 +27,12 @@ Public Sub Tool02_DeleteByProductId()
         Exit Sub
     End If
     
-    '--- 2. 扫描Sheet2,统计匹配记录 ---
+    '--- 2. 扫描绘图净值数据,统计匹配记录 ---
     Dim lastRow As Long
     lastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).row
     
     If lastRow < 2 Then
-        MsgBox "Sheet2中没有数据。", vbInformation
+        MsgBox "绘图净值数据中没有数据。", vbInformation
         Exit Sub
     End If
     
@@ -54,7 +54,7 @@ Public Sub Tool02_DeleteByProductId()
         rowCode = Trim(CStr(dataArr(i, 2)))
         If rowCode = targetCode Then
             matchCount = matchCount + 1
-            matchRows(matchCount) = i + 1  ' Sheet2中的实际行号
+            matchRows(matchCount) = i + 1  ' 绘图净值数据中的实际行号
             
             rowDate = dataArr(i, 1)
             If IsDate(rowDate) Then
@@ -66,7 +66,7 @@ Public Sub Tool02_DeleteByProductId()
     Next i
     
     If matchCount = 0 Then
-        MsgBox "在Sheet2中未找到产品编号 [" & targetCode & "] 的记录。" & vbCrLf & vbCrLf & _
+        MsgBox "在绘图净值数据中未找到产品编号 [" & targetCode & "] 的记录。" & vbCrLf & vbCrLf & _
                "请检查编号是否正确(注意大小写和前后空格)。", vbInformation
         Exit Sub
     End If

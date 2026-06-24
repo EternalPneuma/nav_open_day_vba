@@ -17,7 +17,7 @@ Private Const TPL_YIELD_RED As String = "收益率图表_红.crtx"
 Private Const TPL_YIELD_BLUE As String = "收益率图表_蓝.crtx"
 
 ' chart布局参数(单位:磅)
-Private Const CHART_LEFT_COL As String = "L"
+Private Const CHART_LEFT_COL As String = "P"
 Private Const CHART_WIDTH As Single = 480
 Private Const CHART_HEIGHT_RED As Single = 280   ' 红色模板图表高度
 Private Const CHART_HEIGHT_BLUE As Single = 280  ' 蓝色模板图表高度
@@ -142,24 +142,24 @@ Public Sub Chart03_GenerateCharts()
         
         ' Chart 1: 净值-红 (左上)
         CreateChart ws, dateRngNav, navRng, tplPaths(1), _
-            "chart_净值_红", prodShort & "成立以来单位净值表现", _
+            "chart_净值_红", prodShort & "单位净值表现", _
             baseLeft, baseTop, False, 1#, CHART_HEIGHT_RED
         
         ' Chart 2: 净值-蓝 (左下)
         CreateChart ws, dateRngNav, navRng, tplPaths(2), _
-            "chart_净值_蓝", prodShort & "成立以来单位净值表现", _
+            "chart_净值_蓝", prodShort & "单位净值表现", _
             baseLeft, baseTop + CHART_HEIGHT_RED + CHART_GAP, False, 1#, CHART_HEIGHT_BLUE
     
         ' Chart 3 & 4: 收益率(强制Y轴下限为0)
         If hasYieldData Then
             ' Chart 3: 收益率-红 (右上)
             CreateChart ws, dateRngYield, yieldRng, tplPaths(3), _
-                "chart_收益率_红", prodShort & "成立以来30日年化收益率" & vbLf & "(单位:%)", _
+                "chart_收益率_红", prodShort & "30日年化收益率" & vbLf & "(单位:%)", _
                 baseLeft + CHART_WIDTH + CHART_GAP, baseTop, True, 0#, CHART_HEIGHT_RED
             
             ' Chart 4: 收益率-蓝 (右下)
             CreateChart ws, dateRngYield, yieldRng, tplPaths(4), _
-                "chart_收益率_蓝", prodShort & "成立以来30日年化收益率" & vbLf & "(单位:%)", _
+                "chart_收益率_蓝", prodShort & "30日年化收益率" & vbLf & "(单位:%)", _
                 baseLeft + CHART_WIDTH + CHART_GAP, baseTop + CHART_HEIGHT_RED + CHART_GAP, True, 0#, CHART_HEIGHT_BLUE
          End If
         

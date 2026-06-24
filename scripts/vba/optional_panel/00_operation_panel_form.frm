@@ -42,7 +42,7 @@ Private Sub UserForm_Initialize()
     AddActionButton mRecommendationFrame, "btnRecommendationStep2", "2. 生成推荐材料", 16, 106, 190, 28, Array("Weekly02_GenerateReport")
 
     Set mToolFrame = AddSection("frameTool", "维护工具 tool", 753, 76, 225, 255)
-    AddActionButton mToolFrame, "btnToolCleanData", "1. 清洗重复数据", 16, 70, 190, 28, Array("Tool01_CleanDuplicateData")
+    AddActionButton mToolFrame, "btnToolCleanData", "1. 【绘图净值数据】去重", 16, 70, 190, 28, Array("Tool01_CleanDuplicateData")
     AddActionButton mToolFrame, "btnToolDeleteData", "2. 按产品编号删除数据", 16, 106, 190, 28, Array("Tool02_DeleteByProductId")
     AddActionButton mToolFrame, "btnToolFillOpenDate", "3. 补充下一开放日", 16, 142, 190, 28, Array("Tool03_FillNextOpenDate")
     AddActionButton mToolFrame, "btnToolCheckNavData", "4. 核对净值数据", 16, 178, 190, 28, Array("Tool04_CheckNavData")
