@@ -9,7 +9,7 @@
 - `scripts/tools/analyze_excel_structure.py`：生成单个工作簿结构 JSON，默认输出到 `outputs/analysis/`。
 - `scripts/tools/list_sheet_fields.py`：快速列出数据库工作簿每个 sheet 的字段名和非空记录数。
 - `scripts/vba/data/`：新版数据侧 VBA，按 `01_auto_input` → `02_calculate_open_date` → `03_output_date` 顺序运行。
-- `scripts/vba/chart/`：新版图表侧 VBA，按 `01_auto_input` → `02_check_data` → `03_output_data` → `04_output_chart` → `05_output_image` → `06_output_report` 顺序运行；`t_01_*`、`t_02_*` 是维护/临时工具脚本。
+- `scripts/vba/chart/`：当前图表侧 VBA，按 `01_auto_input` → `02_output_data` → `03_output_chart` → `04_output_image` 顺序运行；历史图表流程仅保留在 `chart/archive/` 供参考。
 - `vba/` 是旧/备用说明与打包资料；理解当前重构优先看 `scripts/vba/data` 和 `scripts/vba/chart`。
 
 ## Python 数据合并约定
@@ -21,7 +21,7 @@
 
 ## VBA 重构约定
 - VBA 源码是可复制到 VBE 的文本模块；当前文件多为**无扩展名**，不要再按旧的 `.txt` 通配路径查找。
-- 文件命名：主流程用 `NN_动作`，工具/临时模块用 `t_NN_动作`；内部入口 Sub 多为 `STEP1...`、`STEP2...`，`data` 线还保留 `S1ImportNAV`、`S2CalculateOpenDays`、`S3ProductReport` 英文别名。
+- 文件命名：主流程用 `NN_动作`，工具/临时模块用 `t_NN_动作`；每个当前模块只保留一个 Public Sub 入口，不保留历史别名或兼容转调接口。
 - 不要只改文件名而忽略模块内部中文注释/MsgBox/过程名；用户已说明前期重命名尽量不改内部内容以避免 Excel 运行风险。
 - Operator-facing 文案、sheet 名、字段名、工作簿名保持中文原文；除非另加注释，不要翻译业务字段。
 - 常见实现模式：`Scripting.Dictionary` 建索引/去重/分组，批量数组读写，运行前关闭 `ScreenUpdating/Calculation/Events`，结束恢复设置并用 `MsgBox` 汇总统计。
@@ -31,8 +31,15 @@
 - `scripts/vba/data/01_auto_input`：从同级工作簿目录下的 `181-固收上层` 增量导入到 `净值数据`，依赖 `HS-181_多账套净值查询_yyyyMMdd.xlsx` 命名、`source_file/source_sheet` 审计列和 30 行表头扫描。
 - `scripts/vba/data/02_calculate_open_date`：基于 `净值数据` 最大日期、`开放日`、`产品分类` 写入下一/上一/上上一开放日、实际间隔、基准日期净值等列。
 - `scripts/vba/data/03_output_date`：生成 `yyyyMMdd-上层产品分类表现.xlsx`，按分类 sheet 输出周期年化、7 日/28 日年化、成立以来年化等字段。
-- `scripts/vba/chart/03_output_data`：从 `Sheet1` 维度和 `Sheet2` 净值数据生成 `产品净值汇总_yyyymmdd.xlsx`，每个产品一个 sheet。
-- `scripts/vba/chart/04_output_chart`、`05_output_image`、`06_output_report`：依次生成图表、导出/拼接图片到 `产品图表_yyyymmdd\`（含 `raw\`），再回填展示模板并按日期另存。
+- `scripts/vba/chart/02_output_data`：从产品信息和绘图净值数据生成 `产品净值汇总_yyyymmdd.xlsx`，每个产品一个 sheet。
+- `scripts/vba/chart/03_output_chart`、`04_output_image`：依次生成图表，并导出/拼接图片到 `产品图表_yyyymmdd\`（含 `raw\`）。展示文件由 `data/04_output_report` 输出。
+
+## 当前 VBA 公共入口
+- `data/`：`Data01_ImportNav181` → `Data02_CalculateOpenDate` → `Data03_ExportProductReport` → `Data04_ExportDisplayReport`。
+- `chart/`：`Chart01_ImportNavData` → `Chart02_ExportProductSummary` → `Chart03_GenerateCharts` → `Chart04_ExportImages`。
+- `tool/`：`Tool01_CleanDuplicateData`、`Tool02_DeleteByProductId`、`Tool03_FillNextOpenDate`、`Tool04_CheckNavData`；仅手动运行，不加入一键主流程。
+- `weekly_recommendation/`：`Weekly01_UpdateDependencies` → `Weekly02_GenerateReport`。
+- `optional_panel/`：按钮只调用上述公共入口；维护工具区包括 `Tool04_CheckNavData`。
 
 ## 业务规则不要误改
 - `产品分类` 的 `理论间隔`：`1=日开`、`7=周开`、`61=两个月开`、`152=五个月开`、`183=六个月开`，其他值按理论日数间隔处理。

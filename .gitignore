@@ -9,6 +9,17 @@ wheels/
 # Virtual environments
 .venv
 
-# Output images
+# Excel lock/temp files
+~$*
+
+# Output images and generated workbooks
 *.png
 *.xlsx
+
+# Auto-generated merge logs and analysis
+outputs/logs/
+outputs/analysis/
+
+# System files
+Thumbs.db
+.DS_Store

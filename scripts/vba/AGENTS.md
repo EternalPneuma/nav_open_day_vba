@@ -11,12 +11,12 @@
 
 | 目录 | 用途 | 主流程/入口 |
 | --- | --- | --- |
-| `data/` | 上层产品净值数据计算与分类展示 | `01_auto_input` → `02_calculate_open_date` → `03_output_date` → `04_output_report`；别名入口为 `S1ImportNAV`、`S2CalculateOpenDays`、`S3ProductReport` |
-| `chart/` | 当前重构后的图表流程 | `01_auto_input` → `02_output_data` → `03_output_chart` → `04_output_image`；入口为 `CSTEP1AutoInputNAV` 至 `CSTEP4OutputImage` |
+| `data/` | 上层产品净值数据计算与分类展示 | `Data01_ImportNav181` → `Data02_CalculateOpenDate` → `Data03_ExportProductReport` → `Data04_ExportDisplayReport` |
+| `chart/` | 当前重构后的图表流程 | `Chart01_ImportNavData` → `Chart02_ExportProductSummary` → `Chart03_GenerateCharts` → `Chart04_ExportImages` |
 | `chart/archive/` | 旧 chart 流程归档，仅供回溯和迁移参考 | 不作为当前运行入口；包含原 `01`–`06` 模块 |
-| `tool/` | 非主流程的维护工具 | `t_01_clean_data`、`t_02_del_data`、`t_03_next_open_date_by_interval`；运行前确认目标工作簿、sheet 和影响范围 |
-| `optional_panel/` | 可选的 VBA 操作面板 | `00_operation_panel`（标准模块）、`00_operation_panel_button`（类模块）、`00_operation_panel_form`（UserForm 代码）；需分别按对应的 VBE 模块类型导入 |
-| `weekly_recommendation/` | 每周推荐材料输出 | `01_update_weekly_recommendation_dependencies` → `02_generate_weekly_recommendation`；入口为 `RSTEP1UpdateWeeklyRecommendationDependencies`、`RSTEP2GenerateWeeklyRecommendation` |
+| `tool/` | 非主流程的维护工具 | `Tool01_CleanDuplicateData`、`Tool02_DeleteByProductId`、`Tool03_FillNextOpenDate`、`Tool04_CheckNavData`；运行前确认目标工作簿、sheet 和影响范围 |
+| `optional_panel/` | 可选的 VBA 操作面板 | `00_operation_panel`（标准模块）、`00_operation_panel_button`（类模块）、`00_operation_panel_form`（UserForm 代码）；按钮调用当前唯一 Public Sub 入口，维护工具区含 `Tool04_CheckNavData` |
+| `weekly_recommendation/` | 每周推荐材料输出 | `Weekly01_UpdateDependencies` → `Weekly02_GenerateReport` |
 
 ## 数据侧规则
 

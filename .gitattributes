@@ -1,0 +1,38 @@
+# VBA modules — VBE expects CRLF
+scripts/vba/**/*.bas   text eol=crlf
+scripts/vba/**/*.cls   text eol=crlf
+scripts/vba/**/*.frm   text eol=crlf
+vba/vba_code/*.bas     text eol=crlf
+vba/vba_code/*.frm     text eol=crlf
+
+# Python — LF standard
+*.py                   text eol=lf
+
+# Shell scripts — LF standard
+*.sh                   text eol=lf
+
+# Markdown / text
+*.md                   text
+*.txt                  text
+*.ps1                  text eol=crlf
+
+# Excel binaries — don't diff or transform
+*.xlsm                 binary
+*.xlsx                 binary
+*.xls                  binary
+
+# Chart templates
+*.crtx                 binary
+
+# Documents
+*.docx                 binary
+*.pptx                 binary
+
+# Images
+*.png                  binary
+*.jpg                  binary
+*.jpeg                 binary
+
+# JSON logs
+*.json                 text
+*.log                  text

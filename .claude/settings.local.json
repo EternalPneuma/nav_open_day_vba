@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /mnt/d/bocom/nav_open_day_vba config diff.vba)",
+      "Bash(git *)",
+      "Bash(echo \"test line RSTEP1UpdateWeeklyRecommendationDependencies\")",
+      "Bash(sed -i 's/RSTEP1UpdateWeeklyRecommendationDependencies/XXX/' /tmp/sedtest.txt)",
+      "Read(//tmp/**)",
+      "Bash(powershell.exe *)",
+      "Bash(printf '\\\\xef\\\\xbb\\\\xbf')",
+      "Bash(cat)",
+      "Bash(grep *)",
+      "Bash(/mnt/d/bocom/nav_open_day_vba/.venv/bin/python -c \"print\\('ok'\\)\")"
+    ]
+  }
+}
