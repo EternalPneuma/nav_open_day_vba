@@ -493,8 +493,8 @@ NextPoint:
 End Sub
 
 '==============================================================
-' 辅助过程: 基于净值序列重算30日年化收益率(复利公式,365天年)
-'   - 公式: ((V_t / V_t-30) ^ (365 / 实际间隔) - 1) × 100
+' 辅助过程: 基于净值序列重算30日年化收益率(单利公式,365天年)
+'   - 公式: ((V_t / V_t-30 - 1) × (365 / 实际间隔)) × 100
 '   - 匹配规则: 找日期-30,失败则向前匹配-31/-32/-33,最多4次
 '   - 合并逻辑:
 '       * 原始值有效(非空/非""/非0/非#N/A)且与计算值偏离<=阈值 → 保留原始值
@@ -651,7 +651,7 @@ Private Sub Calc30DayAnnualYield(ByRef arr As Variant, _
                 If foundBase Then
                     ratio = curNav / baseNav
                     If ratio > 0 Then
-                        calcYield = (ratio ^ (DAYS_PER_YEAR / actualGap) - 1) * 100
+                        calcYield = ((ratio - 1) * (DAYS_PER_YEAR / actualGap)) * 100
                         hasCalc = True
                     End If
                 End If

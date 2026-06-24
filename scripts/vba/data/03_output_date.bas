@@ -375,7 +375,7 @@ Private Sub ComputeBankAgent(ByVal wbOutput As Workbook, ByVal navLookup As Obje
            And Not IsEmpty(prevNav) And Not IsError(prevNav) _
            And Not IsEmpty(prevInterval) And Not IsError(prevInterval) Then
             If CDbl(prevPrevNav) <> 0 And CDbl(prevInterval) > 0 Then
-                wsOutput.Cells(r, 16).Value = (CDbl(prevNav) / CDbl(prevPrevNav)) ^ (365 / CDbl(prevInterval)) - 1
+                wsOutput.Cells(r, 16).Value = (CDbl(prevNav) / CDbl(prevPrevNav) - 1) * (365 / CDbl(prevInterval))
                 wsOutput.Cells(r, 16).NumberFormat = "0.00%"
             End If
         End If
@@ -385,7 +385,7 @@ Private Sub ComputeBankAgent(ByVal wbOutput As Workbook, ByVal navLookup As Obje
            And Not IsEmpty(prevNav) And Not IsError(prevNav) _
            And Not IsEmpty(elapsed) And Not IsError(elapsed) Then
             If CDbl(prevNav) <> 0 And CDbl(elapsed) > 0 Then
-                wsOutput.Cells(r, 17).Value = (CDbl(baselineNav) / CDbl(prevNav)) ^ (365 / CDbl(elapsed)) - 1
+                wsOutput.Cells(r, 17).Value = (CDbl(baselineNav) / CDbl(prevNav) - 1) * (365 / CDbl(elapsed))
                 wsOutput.Cells(r, 17).NumberFormat = "0.00%"
             End If
         End If
@@ -407,7 +407,7 @@ Private Sub ComputeBankAgent(ByVal wbOutput As Workbook, ByVal navLookup As Obje
             nav7 = LookupNAV(navLookup, trustCode, targetDate7)
             If Not IsEmpty(nav7) And Not IsError(nav7) Then
                 If CDbl(nav7) <> 0 Then
-                    wsOutput.Cells(r, 18).Value = (CDbl(baselineNav) / CDbl(nav7)) ^ (365 / 7) - 1
+                    wsOutput.Cells(r, 18).Value = (CDbl(baselineNav) / CDbl(nav7) - 1) * (365 / 7)
                     wsOutput.Cells(r, 18).NumberFormat = "0.00%"
                 End If
             End If
@@ -420,7 +420,7 @@ Private Sub ComputeBankAgent(ByVal wbOutput As Workbook, ByVal navLookup As Obje
             nav28 = LookupNAV(navLookup, trustCode, targetDate28)
             If Not IsEmpty(nav28) And Not IsError(nav28) Then
                 If CDbl(nav28) <> 0 Then
-                    wsOutput.Cells(r, 19).Value = (CDbl(baselineNav) / CDbl(nav28)) ^ (365 / 28) - 1
+                    wsOutput.Cells(r, 19).Value = (CDbl(baselineNav) / CDbl(nav28) - 1) * (365 / 28)
                     wsOutput.Cells(r, 19).NumberFormat = "0.00%"
                 End If
             End If
@@ -797,7 +797,7 @@ Private Sub WriteInceptionAnnual(ByVal ws As Worksheet, ByVal rowNumber As Long,
     If dayCount <= 0 Then Exit Sub
 
     If DEFAULT_INCEPTION_NAV <> 0 Then
-        ws.Cells(rowNumber, outputCol).Value = (CDbl(baselineNav) / DEFAULT_INCEPTION_NAV) ^ (365 / dayCount) - 1
+        ws.Cells(rowNumber, outputCol).Value = (CDbl(baselineNav) / DEFAULT_INCEPTION_NAV - 1) * (365 / dayCount)
         ws.Cells(rowNumber, outputCol).NumberFormat = "0.00%"
     End If
 End Sub
@@ -938,7 +938,7 @@ Private Sub ComputeStableLongTerm(ByVal wbOutput As Workbook, ByVal inceptionLoo
             If Not IsEmpty(prevNav) And Not IsError(prevNav) Then
                 If Not IsEmpty(elapsedValue) And Not IsError(elapsedValue) Then
                     If CDbl(prevNav) <> 0 And CLng(elapsedValue) > 0 Then
-                        ws.Cells(r, 13).Value = (CDbl(baselineNav) / CDbl(prevNav)) ^ (365 / CLng(elapsedValue)) - 1
+                        ws.Cells(r, 13).Value = (CDbl(baselineNav) / CDbl(prevNav) - 1) * (365 / CLng(elapsedValue))
                         ws.Cells(r, 13).NumberFormat = "0.00%"
                     End If
                 End If
@@ -980,7 +980,7 @@ Private Sub ComputeDirectSales(ByVal wbOutput As Workbook, ByVal navLookup As Ob
         nav7 = LookupNAV(navLookup, trustCode, targetDate7)
         If Not IsEmpty(nav7) And Not IsError(nav7) Then
             If CDbl(nav7) <> 0 Then
-                ws.Cells(r, 13).Value = (CDbl(baselineNav) / CDbl(nav7)) ^ (365 / 7) - 1
+                ws.Cells(r, 13).Value = (CDbl(baselineNav) / CDbl(nav7) - 1) * (365 / 7)
                 ws.Cells(r, 13).NumberFormat = "0.00%"
             End If
         End If
@@ -990,7 +990,7 @@ Private Sub ComputeDirectSales(ByVal wbOutput As Workbook, ByVal navLookup As Ob
         nav28 = LookupNAV(navLookup, trustCode, targetDate28)
         If Not IsEmpty(nav28) And Not IsError(nav28) Then
             If CDbl(nav28) <> 0 Then
-                ws.Cells(r, 14).Value = (CDbl(baselineNav) / CDbl(nav28)) ^ (365 / 28) - 1
+                ws.Cells(r, 14).Value = (CDbl(baselineNav) / CDbl(nav28) - 1) * (365 / 28)
                 ws.Cells(r, 14).NumberFormat = "0.00%"
             End If
         End If
@@ -1030,7 +1030,7 @@ Private Sub ComputeYuanRongAnXiang(ByVal wbOutput As Workbook, ByVal navLookup A
         nav7 = LookupNAV(navLookup, trustCode, targetDate7)
         If Not IsEmpty(nav7) And Not IsError(nav7) Then
             If CDbl(nav7) <> 0 Then
-                ws.Cells(r, 10).Value = (CDbl(baselineNav) / CDbl(nav7)) ^ (365 / 7) - 1
+                ws.Cells(r, 10).Value = (CDbl(baselineNav) / CDbl(nav7) - 1) * (365 / 7)
                 ws.Cells(r, 10).NumberFormat = "0.00%"
             End If
         End If
@@ -1040,7 +1040,7 @@ Private Sub ComputeYuanRongAnXiang(ByVal wbOutput As Workbook, ByVal navLookup A
         nav28 = LookupNAV(navLookup, trustCode, targetDate28)
         If Not IsEmpty(nav28) And Not IsError(nav28) Then
             If CDbl(nav28) <> 0 Then
-                ws.Cells(r, 11).Value = (CDbl(baselineNav) / CDbl(nav28)) ^ (365 / 28) - 1
+                ws.Cells(r, 11).Value = (CDbl(baselineNav) / CDbl(nav28) - 1) * (365 / 28)
                 ws.Cells(r, 11).NumberFormat = "0.00%"
             End If
         End If
