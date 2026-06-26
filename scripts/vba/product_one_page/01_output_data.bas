@@ -452,6 +452,7 @@ Private Sub WriteProductSheet(ByVal wsOut As Worksheet, ByVal productCode As Str
     Next pkKey
 
     SortByCol tmpArr, 3
+    SmoothDividendDays tmpArr, 2
 
     Dim writeArr() As Variant
     ReDim writeArr(1 To nRows, 1 To 6)
@@ -505,6 +506,66 @@ Private Sub WriteProductSheet(ByVal wsOut As Worksheet, ByVal productCode As Str
     Else
         wsOut.Columns("A:F").AutoFit
     End If
+End Sub
+
+Private Sub SmoothDividendDays(ByRef arr As Variant, ByVal navCol As Long)
+    Const K_RATIO As Double = 3#
+    Const THRESHOLD As Double = 0.0005
+
+    Dim n As Long
+    n = UBound(arr, 1)
+    If n < 3 Then Exit Sub
+
+    Dim newNav() As Double
+    ReDim newNav(1 To n)
+    Dim isValid() As Boolean
+    ReDim isValid(1 To n)
+
+    Dim i As Long
+    For i = 1 To n
+        If IsNumeric(arr(i, navCol)) And Not IsEmpty(arr(i, navCol)) Then
+            newNav(i) = CDbl(arr(i, navCol))
+            isValid(i) = True
+        Else
+            isValid(i) = False
+        End If
+    Next i
+
+    Dim prevV As Double
+    Dim curV As Double
+    Dim nextV As Double
+    Dim expected As Double
+    Dim jump As Double
+    Dim baseline As Double
+    Dim limit As Double
+
+    For i = 2 To n - 1
+        If Not isValid(i) Then GoTo NextPoint
+        If Not isValid(i - 1) Then GoTo NextPoint
+        If Not isValid(i + 1) Then GoTo NextPoint
+
+        prevV = CDbl(arr(i - 1, navCol))
+        curV = CDbl(arr(i, navCol))
+        nextV = CDbl(arr(i + 1, navCol))
+
+        expected = (prevV + nextV) / 2
+        jump = Abs(curV - expected)
+        baseline = Abs(nextV - prevV)
+
+        limit = baseline * K_RATIO
+        If prevV * THRESHOLD > limit Then limit = prevV * THRESHOLD
+
+        If jump > limit Then
+            newNav(i) = expected
+        End If
+NextPoint:
+    Next i
+
+    For i = 1 To n
+        If isValid(i) Then
+            arr(i, navCol) = newNav(i)
+        End If
+    Next i
 End Sub
 
 Private Function TryParseDateValue(ByVal value As Variant, ByRef parsedDate As Date) As Boolean

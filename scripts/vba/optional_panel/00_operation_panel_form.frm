@@ -1,7 +1,7 @@
 Option Explicit
 
 ' UserForm 名称：frmOperationPanel
-' 用途：为 chart、data、weekly_recommendation 与 tool 提供简单操作面板。
+' 用途：为 chart、data、weekly_recommendation、product_one_page 与 tool 提供简单操作面板。
 ' 说明：本窗体会在 Initialize 中动态生成控件，不需要手工绘制按钮。
 
 Private mButtonHandlers As Collection
@@ -9,18 +9,19 @@ Private mStatusLabel As MSForms.Label
 Private mChartFrame As MSForms.Frame
 Private mDataFrame As MSForms.Frame
 Private mRecommendationFrame As MSForms.Frame
+Private mOnePageFrame As MSForms.Frame
 Private mToolFrame As MSForms.Frame
 
 Private Sub UserForm_Initialize()
     Me.Caption = "上层产品净值自动化操作面板"
-    Me.Width = 1020
+    Me.Width = 1265
     Me.Height = 455
     Me.BackColor = RGB(248, 248, 248)
 
     Set mButtonHandlers = New Collection
 
-    AddTitleLabel "titleMain", "自动化操作面板", 18, 14, 980, 24, 12, True
-    AddTitleLabel "titleDesc", "请按业务流程顺序运行；一键流程会依次调用下方各步骤。", 18, 42, 980, 18, 9, False
+    AddTitleLabel "titleMain", "自动化操作面板", 18, 14, 1225, 24, 12, True
+    AddTitleLabel "titleDesc", "请按业务流程顺序运行；一键流程会依次调用下方各步骤。", 18, 42, 1225, 18, 9, False
 
     Set mChartFrame = AddSection("frameChart", "图表流程 chart", 18, 76, 225, 255)
     AddActionButton mChartFrame, "btnChartAll", "一键运行图表流程", 16, 28, 190, 30, Array("Chart01_ImportNavData", "Chart02_ExportProductSummary", "Chart03_GenerateCharts", "Chart04_ExportImages")
@@ -41,19 +42,26 @@ Private Sub UserForm_Initialize()
     AddActionButton mRecommendationFrame, "btnRecommendationStep1", "1. 更新推荐材料依赖", 16, 70, 190, 28, Array("Weekly01_UpdateDependencies")
     AddActionButton mRecommendationFrame, "btnRecommendationStep2", "2. 生成推荐材料", 16, 106, 190, 28, Array("Weekly02_GenerateReport")
 
-    Set mToolFrame = AddSection("frameTool", "维护工具 tool", 753, 76, 225, 255)
+    Set mOnePageFrame = AddSection("frameOnePage", "单产品一页 product_one_page", 753, 76, 225, 255)
+    AddActionButton mOnePageFrame, "btnOnePageAll", "一键运行单产品一页流程", 16, 28, 190, 30, Array("OnePage00_CheckAndImportNavData", "OnePage01_ExportChartData", "OnePage02_GenerateCharts", "OnePage03_ExportPptPdf")
+    AddActionButton mOnePageFrame, "btnOnePageStep0", "0. 检查并补充净值数据", 16, 70, 190, 28, Array("OnePage00_CheckAndImportNavData")
+    AddActionButton mOnePageFrame, "btnOnePageStep1", "1. 导出一页通数据", 16, 106, 190, 28, Array("OnePage01_ExportChartData")
+    AddActionButton mOnePageFrame, "btnOnePageStep2", "2. 生成一页通图表", 16, 142, 190, 28, Array("OnePage02_GenerateCharts")
+    AddActionButton mOnePageFrame, "btnOnePageStep3", "3. 导出 PPT/PDF", 16, 178, 190, 28, Array("OnePage03_ExportPptPdf")
+
+    Set mToolFrame = AddSection("frameTool", "维护工具 tool", 998, 76, 225, 255)
     AddActionButton mToolFrame, "btnToolCleanData", "1. 【绘图净值数据】去重", 16, 70, 190, 28, Array("Tool01_CleanDuplicateData")
     AddActionButton mToolFrame, "btnToolDeleteData", "2. 按产品编号删除数据", 16, 106, 190, 28, Array("Tool02_DeleteByProductId")
     AddActionButton mToolFrame, "btnToolFillOpenDate", "3. 补充下一开放日", 16, 142, 190, 28, Array("Tool03_FillNextOpenDate")
     AddActionButton mToolFrame, "btnToolCheckNavData", "4. 核对净值数据", 16, 178, 190, 28, Array("Tool04_CheckNavData")
 
-    AddActionButton Me, "btnClose", "关闭面板", 885, 348, 96, 30, Array("__close__")
+    AddActionButton Me, "btnClose", "关闭面板", 1130, 348, 96, 30, Array("__close__")
 
     Set mStatusLabel = Me.Controls.Add("Forms.Label.1", "lblStatus", True)
     With mStatusLabel
         .Left = 18
         .Top = 348
-        .Width = 840
+        .Width = 1085
         .Height = 54
         .Caption = "状态：等待操作。"
         .BackStyle = fmBackStyleTransparent

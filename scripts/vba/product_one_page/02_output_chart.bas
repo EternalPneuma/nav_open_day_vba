@@ -17,8 +17,8 @@ Private Const REITS_LABEL As String = "中证REITs全收益-期间年化收益�
 
 Private Const CHART_LEFT_COL As String = "J"
 Private Const CHART_TOP_ROW As Long = 2
-Private Const CHART_WIDTH As Single = 760
-Private Const CHART_HEIGHT As Single = 380
+Private Const CHART_WIDTH As Single = 500
+Private Const CHART_HEIGHT As Single = 175
 
 Private Const FONT_NAME As String = "微软雅黑"
 
@@ -186,6 +186,7 @@ Private Sub CreateProductChart(ByVal ws As Worksheet)
     Dim ch As Chart
     Set ch = co.Chart
     ch.ChartType = xlLine
+    ch.DisplayBlanksAs = xlInterpolated
     ch.HasTitle = False
     ch.HasLegend = True
     ch.Legend.Position = xlLegendPositionTop
@@ -208,10 +209,11 @@ Private Sub CreateProductChart(ByVal ws As Worksheet)
     FormatChartArea ch
     FormatCategoryAxis ch, dateRng
     FormatValueAxes ch, navRng, productReturnRng, sReitsReturn, productCode
+    FormatPlotArea ch
 
-    ApplyLastPointDataLabel sNav, "0.0000"
-    ApplyLastPointDataLabel sProductReturn, "0.00%"
-    If Not sReitsReturn Is Nothing Then ApplyLastPointDataLabel sReitsReturn, "0.00%"
+    ApplyLastPointDataLabel sNav, navRng, "0.0000", COLOR_NAV
+    ApplyLastPointDataLabel sProductReturn, productReturnRng, "0.00%", COLOR_PRODUCT_RETURN
+    If Not sReitsReturn Is Nothing Then ApplyLastPointDataLabel sReitsReturn, ws.Range(COL_REITS_ANNUALIZED_RETURN & "2:" & COL_REITS_ANNUALIZED_RETURN & lastRow), "0.00%", COLOR_REITS_RETURN
 End Sub
 
 Private Function AddLineSeries(ByVal ch As Chart, ByVal xRange As Range, ByVal yRange As Range, ByVal seriesName As String, ByVal axisGroup As XlAxisGroup, ByVal colorHex As String) As Series
@@ -226,7 +228,7 @@ Private Function AddLineSeries(ByVal ch As Chart, ByVal xRange As Range, ByVal y
     With s.Format.Line
         .Visible = msoTrue
         .ForeColor.RGB = ColorFromHex(colorHex)
-        .Weight = 1.75
+        .Weight = 2.25
     End With
     s.MarkerStyle = xlMarkerStyleNone
 
@@ -289,8 +291,24 @@ Private Sub FormatCategoryAxis(ByVal ch As Chart, ByVal dateRng As Range)
         .MajorUnitScale = xlDays
         .MinorUnit = dayDiff
         .MinorUnitScale = xlDays
-        .TickLabels.NumberFormat = "yyyy-mm-dd"
+        .TickLabels.NumberFormat = "yyyy年mm月dd日"
         .TickLabels.Font.Name = FONT_NAME
+    End With
+    On Error GoTo 0
+End Sub
+
+Private Sub FormatPlotArea(ByVal ch As Chart)
+    Const PLOT_LEFT As Double = 42
+    Const PLOT_TOP As Double = 24
+    Const PLOT_RIGHT_PAD As Double = 54
+    Const PLOT_BOTTOM_PAD As Double = 32
+
+    On Error Resume Next
+    With ch.PlotArea
+        .InsideLeft = PLOT_LEFT
+        .InsideTop = PLOT_TOP
+        .InsideWidth = ch.ChartArea.Width - PLOT_LEFT - PLOT_RIGHT_PAD
+        .InsideHeight = ch.ChartArea.Height - PLOT_TOP - PLOT_BOTTOM_PAD
     End With
     On Error GoTo 0
 End Sub
@@ -303,7 +321,11 @@ Private Sub FormatValueAxes(ByVal ch As Chart, ByVal navRng As Range, ByVal prod
     End If
 
     Dim navAxisMax As Double
-    navAxisMax = AlignUp(navMax + (navMax - 1#) * 0.1, 0.01)
+    If StrComp(productCode, PRODUCT_OA4400, vbTextCompare) = 0 Then
+        navAxisMax = AlignUp(navMax + (navMax - 1#), 0.01)
+    Else
+        navAxisMax = AlignUp(navMax + (navMax - 1#) * 0.1, 0.01)
+    End If
     If navAxisMax <= 1# Then navAxisMax = 1.01
 
     Dim retMin As Double
@@ -337,13 +359,13 @@ Private Sub FormatValueAxes(ByVal ch As Chart, ByVal navRng As Range, ByVal prod
     With ch.Axes(xlValue, xlSecondary)
         .MinimumScale = retAxisMin
         .MaximumScale = retAxisMax
-        .TickLabels.NumberFormat = "0.00%"
+        .TickLabels.NumberFormat = ";;;"
         .TickLabels.Font.Name = FONT_NAME
     End With
     On Error GoTo 0
 End Sub
 
-Private Sub ApplyLastPointDataLabel(ByVal s As Series, ByVal numberFormatText As String)
+Private Sub ApplyLastPointDataLabel(ByVal s As Series, ByVal yRange As Range, ByVal numberFormatText As String, ByVal colorHex As String)
     On Error Resume Next
 
     Dim ptCount As Long
@@ -351,8 +373,9 @@ Private Sub ApplyLastPointDataLabel(ByVal s As Series, ByVal numberFormatText As
     If ptCount <= 0 Then Exit Sub
 
     Dim lastValidPoint As Long
-    lastValidPoint = LastNumericPointIndex(s)
+    lastValidPoint = LastNumericPointIndexFromRange(yRange)
     If lastValidPoint <= 0 Then Exit Sub
+    If lastValidPoint > ptCount Then lastValidPoint = ptCount
 
     s.ApplyDataLabels Type:=xlDataLabelsShowValue
 
@@ -370,27 +393,24 @@ Private Sub ApplyLastPointDataLabel(ByVal s As Series, ByVal numberFormatText As
         .Font.Name = FONT_NAME
         .Font.Size = 10
         .Font.Bold = False
+        .Font.Color = ColorFromHex(colorHex)
         .Position = xlLabelPositionRight
     End With
 
     On Error GoTo 0
 End Sub
 
-Private Function LastNumericPointIndex(ByVal s As Series) As Long
-    Dim valuesArr As Variant
-    valuesArr = s.Values
+Private Function LastNumericPointIndexFromRange(ByVal rng As Range) As Long
+    Dim i As Long
+    Dim v As Variant
 
-    If IsArray(valuesArr) Then
-        Dim i As Long
-        For i = UBound(valuesArr) To LBound(valuesArr) Step -1
-            If Not IsError(valuesArr(i)) And Not IsEmpty(valuesArr(i)) And IsNumeric(valuesArr(i)) Then
-                LastNumericPointIndex = i
-                Exit Function
-            End If
-        Next i
-    ElseIf Not IsError(valuesArr) And Not IsEmpty(valuesArr) And IsNumeric(valuesArr) Then
-        LastNumericPointIndex = 1
-    End If
+    For i = rng.Rows.Count To 1 Step -1
+        v = rng.Cells(i, 1).Value
+        If Not IsError(v) And Not IsEmpty(v) And IsNumeric(v) Then
+            LastNumericPointIndexFromRange = i
+            Exit Function
+        End If
+    Next i
 End Function
 
 Private Sub DeleteExistingCharts(ByVal ws As Worksheet)
