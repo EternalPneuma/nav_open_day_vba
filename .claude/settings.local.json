@@ -10,7 +10,13 @@
       "Bash(printf '\\\\xef\\\\xbb\\\\xbf')",
       "Bash(cat)",
       "Bash(grep *)",
-      "Bash(/mnt/d/bocom/nav_open_day_vba/.venv/bin/python -c \"print\\('ok'\\)\")"
+      "Bash(/mnt/d/bocom/nav_open_day_vba/.venv/bin/python -c \"print\\('ok'\\)\")",
+      "Bash(uv run python -c ' *)",
+      "Bash(uv run *)",
+      "Read(//usr/bin/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(perl --version)",
+      "Bash(perl *)"
     ]
   }
 }

@@ -63,7 +63,7 @@ Public Sub Weekly02_GenerateReport()
     
     Dim navHeaders As Object
     Set navHeaders = GetHeaderMap(wsNav)
-    RequireHeaders navHeaders, Array("净值日期", "产品编号", "净值", "7日年化收益(%)", "30日年化收益(%)")
+    RequireHeaders navHeaders, Array("净值日期", "产品编号", "净值")
     
     Dim lastProductRow As Long
     lastProductRow = wsProduct.Cells(wsProduct.Rows.Count, HeaderColumn(productHeaders, "信托计划代码")).End(xlUp).Row
@@ -561,49 +561,68 @@ Private Sub ReadPerformanceMetrics(ByVal wsProduct As Worksheet, _
     Dim dateCol As Long: dateCol = HeaderColumn(navHeaders, "净值日期")
     Dim codeCol As Long: codeCol = HeaderColumn(navHeaders, "产品编号")
     Dim navCol As Long: navCol = HeaderColumn(navHeaders, "净值")
-    Dim rate7Col As Long: rate7Col = HeaderColumn(navHeaders, "7日年化收益(%)")
-    Dim rate30Col As Long: rate30Col = HeaderColumn(navHeaders, "30日年化收益(%)")
-    
-    Dim latestDate As Date
-    Dim latestFound As Boolean: latestFound = False
-    Dim latestNav As Double
-    Dim raw7 As Variant, raw30 As Variant
-    
+    ' 收集该产品全部净值数据点
+    Dim navDates() As Date
+    Dim navValues() As Double
+    Dim dataCount As Long: dataCount = 0
+
     Dim lastRow As Long
     lastRow = wsNav.Cells(wsNav.Rows.Count, codeCol).End(xlUp).Row
-    
+
     Dim r As Long
     For r = 2 To lastRow
         If Trim(CStr(wsNav.Cells(r, codeCol).Value)) = productCode Then
             If IsDate(wsNav.Cells(r, dateCol).Value) Then
                 Dim navDate As Date
                 navDate = CDate(wsNav.Cells(r, dateCol).Value)
-                
-                If navDate <= baseDate Then
-                    If Not latestFound Or navDate > latestDate Then
-                        latestFound = True
-                        latestDate = navDate
-                        If IsNumeric(wsNav.Cells(r, navCol).Value) Then latestNav = CDbl(wsNav.Cells(r, navCol).Value)
-                        raw7 = wsNav.Cells(r, rate7Col).Value
-                        raw30 = wsNav.Cells(r, rate30Col).Value
+
+                If navDate <= baseDate And IsNumeric(wsNav.Cells(r, navCol).Value) Then
+                    Dim navValue As Double
+                    navValue = CDbl(wsNav.Cells(r, navCol).Value)
+                    If navValue > 0 Then
+                        dataCount = dataCount + 1
+                        ReDim Preserve navDates(1 To dataCount)
+                        ReDim Preserve navValues(1 To dataCount)
+                        navDates(dataCount) = navDate
+                        navValues(dataCount) = navValue
                     End If
                 End If
             End If
         End If
     Next r
-    
-    If Not latestFound Then Exit Sub
-    
-    If IsNumeric(raw7) Then rate7 = CDbl(raw7) / 100
-    If IsNumeric(raw30) Then rate30 = CDbl(raw30) / 100
-    
+
+    If dataCount = 0 Then Exit Sub
+
+    ' 按日期降序排序（冒泡，数据量很小）
+    Dim i As Long, j As Long
+    For i = 1 To dataCount - 1
+        For j = i + 1 To dataCount
+            If navDates(j) > navDates(i) Then
+                Dim tmpDate As Date: tmpDate = navDates(i)
+                navDates(i) = navDates(j)
+                navDates(j) = tmpDate
+                Dim tmpNav As Double: tmpNav = navValues(i)
+                navValues(i) = navValues(j)
+                navValues(j) = tmpNav
+            End If
+        Next j
+    Next i
+
+    Dim latestNav As Double: latestNav = navValues(1)
+    Dim latestDate As Date: latestDate = navDates(1)
+
+    ' 从净值计算 7日/30日年化（单利公式，365天年）
+    rate7 = CalcAnnualYieldFromNavSeries(latestNav, latestDate, navDates, navValues, dataCount, 7, 3)
+    rate30 = CalcAnnualYieldFromNavSeries(latestNav, latestDate, navDates, navValues, dataCount, 30, 3)
+
+    ' 成立以来年化（单利，沿用原逻辑）
     Dim inceptionCol As Long
     inceptionCol = HeaderColumn(productHeaders, "成立日")
-    
+
     If IsDate(wsProduct.Cells(productRow, inceptionCol).Value) And latestNav > 0 Then
         Dim inceptionDate As Date
         inceptionDate = CDate(wsProduct.Cells(productRow, inceptionCol).Value)
-        
+
         Dim daysCount As Long
         daysCount = DateDiff("d", inceptionDate, latestDate) + 1
         If daysCount > 0 Then
@@ -611,6 +630,42 @@ Private Sub ReadPerformanceMetrics(ByVal wsProduct As Worksheet, _
         End If
     End If
 End Sub
+
+
+Private Function CalcAnnualYieldFromNavSeries(ByVal currentNav As Double, ByVal currentDate As Date, _
+                                                ByRef navDates() As Date, ByRef navValues() As Double, _
+                                                ByVal dataCount As Long, _
+                                                ByVal targetDays As Long, ByVal maxBacktrack As Long) As Variant
+    ' 单利公式: (V_t / V_base - 1) × (365 / 实际间隔)
+    ' 匹配规则: 先找 -targetDays, 失败向前再尝试 maxBacktrack 次
+    Dim offset As Long
+    Dim i As Long
+    Dim found As Boolean: found = False
+    Dim pastNav As Double
+    Dim actualDays As Long
+
+    For offset = 0 To maxBacktrack
+        Dim searchDate As Date
+        searchDate = DateAdd("d", -(targetDays + offset), currentDate)
+
+        For i = 2 To dataCount
+            If navDates(i) = searchDate Then
+                pastNav = navValues(i)
+                actualDays = targetDays + offset
+                found = True
+                Exit For
+            End If
+        Next i
+
+        If found Then Exit For
+    Next offset
+
+    If found And currentNav > 0 And pastNav > 0 Then
+        CalcAnnualYieldFromNavSeries = (currentNav / pastNav - 1) * 365# / actualDays
+    Else
+        CalcAnnualYieldFromNavSeries = Empty
+    End If
+End Function
 
 Private Function RateText(ByVal rateValue As Variant) As String
     If IsEmpty(rateValue) Or Not IsNumeric(rateValue) Then

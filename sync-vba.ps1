@@ -1,6 +1,6 @@
 ﻿param(
     [string]$WorkbookPath = "上层产品净值数据库.xlsm",
-    [string]$ModuleGroups = "data,chart,optional_panel,tool,weekly",
+    [string]$ModuleGroups = "data,chart,optional_panel,tool,weekly,one_page",
     [string]$RepoRoot = ""
 )
 
@@ -53,11 +53,12 @@ Write-Host "系统编码: $($systemEncoding.EncodingName) (CP$($systemEncoding.C
 # ---------- 模块清单 ----------
 
 $moduleMap = @{
-    data           = @{ path = "scripts/vba/data";          type = "bas" }
-    chart          = @{ path = "scripts/vba/chart";         type = "bas" }
-    optional_panel = @{ path = "scripts/vba/optional_panel"; type = "mixed" }
-    tool           = @{ path = "scripts/vba/tool";          type = "bas" }
+    data           = @{ path = "scripts/vba/data";                  type = "bas" }
+    chart          = @{ path = "scripts/vba/chart";                 type = "bas" }
+    optional_panel = @{ path = "scripts/vba/optional_panel";        type = "mixed" }
+    tool           = @{ path = "scripts/vba/tool";                  type = "bas" }
     weekly         = @{ path = "scripts/vba/weekly_recommendation"; type = "bas" }
+    one_page       = @{ path = "scripts\vba\product_one_page";      type = "bas" }
 }
 
 $groups = $ModuleGroups -split ',' | ForEach-Object { $_.Trim() }
@@ -106,6 +107,7 @@ $groupPrefixMap = @{
     tool             = "T"
     weekly           = "R"
     optional_panel   = "P"
+    one_page         = "O"
 }
 
 # 代码中存在跨模块类型引用时，名称必须与代码声明一致，不能仅由文件名推导。

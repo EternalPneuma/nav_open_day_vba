@@ -3,7 +3,7 @@
 Option Explicit
 
 Private Const SOURCE_FILE_SUFFIX As String = "-上层产品分类表现.xlsx"
-Private Const OUTPUT_FILE_SUFFIX As String = "-展示.xlsx"
+Private Const OUTPUT_FILE_SUFFIX As String = "-产品收益展示.xlsx"
 Private Const TITLE_IMAGE_NAME As String = "title.png"
 
 Private Const PRODUCT_CATEGORY_SHEET_NAME As String = "产品分类"
