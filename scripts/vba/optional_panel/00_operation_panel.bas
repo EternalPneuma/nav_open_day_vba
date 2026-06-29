@@ -7,7 +7,7 @@ Option Explicit
 ' 3. 插入类模块，名称改为 clsOperationPanelButton，复制 00_operation_panel_button 内容。
 ' 4. 运行 ShowOperationPanel。
 
-Public Sub ShowOperationPanel()
+Public Sub AAA启动控制台()
     ' 使用运行时名称避免在尚未导入 UserForm 时触发“变量未定义”的编译错误。
     ' 使用 sync-vba.ps1 同步时，脚本会创建名为 frmOperationPanel 的 UserForm。
     Dim panel As Object

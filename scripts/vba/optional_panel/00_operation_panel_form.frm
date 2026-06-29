@@ -1,7 +1,7 @@
 Option Explicit
 
 ' UserForm 名称：frmOperationPanel
-' 用途：为 chart、data、weekly_recommendation、product_one_page 与 tool 提供简单操作面板。
+' 说明：为 chart、data、weekly_recommendation、product_one_page 与 tool 提供简单操作面板。
 ' 说明：本窗体会在 Initialize 中动态生成控件，不需要手工绘制按钮。
 
 Private mButtonHandlers As Collection
@@ -35,24 +35,24 @@ Private Sub UserForm_Initialize()
     AddActionButton mMainFrame, "btnMainStep8", "8. 输出展示报表", 207, 154, 365, 28, Array("Data04_ExportDisplayReport")
     AddInfoLabel mMainFrame, "lblMainNote", "顺序：导入 181 净值 → 测算开放日 → 输出分类表现 → 生成图表图片 → 输出展示报表。", 16, 202, 560, 32
 
-    Set mGuideFrame = AddSection("frameGuide", "操作指南", 640, 76, 440, 535)
+    Set mGuideFrame = AddSection("frameGuide", "操作指南", 640, 76, 440, 335)
     AddInfoLabel mGuideFrame, "lblGuide", _
         "一、产品业绩展示" & vbCrLf & _
-        "用途：生成稳享长期限、直销、交通银行、江苏银行等展示文件。" & vbCrLf & _
-        "数据：在内网系统“自定义查询”搜索“181”，下载固收部产品净值文件，并保存到当前工作簿同级目录。" & vbCrLf & _
-        "维护：基准收益率不自动抓取，如需更新，请在“产品分类”sheet 手工维护。" & vbCrLf & vbCrLf & _
+        "涉及产品：稳享长期限、直销、交通银行、江苏银行" & vbCrLf & _
+        "数据准备：内网系统“自定义查询”搜索“181”，下载固收部产品净值文件并放到同级目录。" & vbCrLf & _
+        "    - 注: 一个 Excel 工作簿放置一天的数据，命名规范为[HS-181_多账套净值查询_yyyymmdd.xlsx]。" & vbCrLf & _
+        "手工维护：如需更新基准收益率，请维护“产品分类”sheet。" & vbCrLf & vbCrLf & _
         "二、一页通" & vbCrLf & _
-        "用途：生成汇鑫1号、交鑫致远一页通材料。" & vbCrLf & _
-        "说明：主流程的“导入绘图净值”已覆盖 00 补充净值；一键按钮默认只运行 01-03。" & vbCrLf & _
-        "依赖：REITs 数据可参考 scripts/tools/fetch_reits_total_return.py 获取，内网机通常无法直接运行。" & vbCrLf & vbCrLf & _
+        "涉及产品：汇鑫1号、交鑫致远" & vbCrLf & _
+        "说明：主流程“导入绘图净值”已覆盖 0.补充净值；一键按钮默认只运行 1-3。" & vbCrLf & _
+        "数据准备：REITs 数据可用 fetch_reits_total_return.py 获取，或直接维护对应 Excel。" & vbCrLf & vbCrLf & _
         "三、推荐材料" & vbCrLf & _
-        "用途：生成汇益5号、汇益稳健101号推荐材料。" & vbCrLf & _
-        "顺序：先更新依赖数据，再生成材料。" & vbCrLf & vbCrLf & _
-        "四、维护工具" & vbCrLf & _
-        "用途：去重、删除指定产品、补开放日、核对净值、查询 181 记录、删除当前工作表空行。" & vbCrLf & vbCrLf & _
-        "五、运行前检查" & vbCrLf & _
+        "涉及产品：汇益5号、汇益稳健日开101号、汇益稳健28天101号" & vbCrLf & _
+        "说明：通过依赖数据计算规模和收益率，再生成材料。" & vbCrLf & _
+        "手工维护：工作表[产品要素][主要底层资产][底层资产对应关系]" & vbCrLf & vbCrLf & _
+        "四、运行前检查" & vbCrLf & _
         "请先保存当前工作簿，确认源文件位于同级目录，且输出文件未被打开占用。", _
-        16, 28, 405, 470, 8
+        16, 28, 405, 285, 8
 
     Set mOnePageFrame = AddSection("frameOnePage", "一页通", 18, 348, 290, 150)
     AddActionButton mOnePageFrame, "btnOnePageAll", "一键运行一页通流程", 16, 28, 250, 30, Array("OnePage01_ExportChartData", "OnePage02_GenerateCharts", "OnePage03_ExportPptPdf")
@@ -66,13 +66,13 @@ Private Sub UserForm_Initialize()
     AddActionButton mRecommendationFrame, "btnRecommendationStep1", "1. 更新依赖", 16, 72, 115, 28, Array("Weekly01_UpdateDependencies")
     AddActionButton mRecommendationFrame, "btnRecommendationStep2", "2. 生成材料", 151, 72, 115, 28, Array("Weekly02_GenerateReport")
 
-    Set mToolFrame = AddSection("frameTool", "维护工具", 18, 515, 600, 96)
-    AddActionButton mToolFrame, "btnToolCleanData", "1. 绘图去重", 16, 28, 84, 28, Array("Tool01_CleanDuplicateData")
-    AddActionButton mToolFrame, "btnToolDeleteData", "2. 删除产品", 110, 28, 84, 28, Array("Tool02_DeleteByProductId")
-    AddActionButton mToolFrame, "btnToolFillOpenDate", "3. 补开放日", 204, 28, 84, 28, Array("Tool03_FillNextOpenDate")
-    AddActionButton mToolFrame, "btnToolCheckNavData", "4. 核对净值", 298, 28, 84, 28, Array("Tool04_CheckNavData")
-    AddActionButton mToolFrame, "btnToolQuery181Stats", "5. 查询181", 392, 28, 84, 28, Array("Tool05_Query181NavStats")
-    AddActionButton mToolFrame, "btnToolDeleteEmptyRows", "6. 删空行", 486, 28, 84, 28, Array("Tool06_DeleteEmptyRows")
+    Set mToolFrame = AddSection("frameTool", "维护工具", 640, 430, 440, 181)
+    AddActionButton mToolFrame, "btnToolCleanData", "1. 绘图去重", 16, 28, 190, 28, Array("Tool01_CleanDuplicateData")
+    AddActionButton mToolFrame, "btnToolDeleteData", "2. 删除产品", 226, 28, 190, 28, Array("Tool02_DeleteByProductId")
+    AddActionButton mToolFrame, "btnToolFillOpenDate", "3. 补开放日", 16, 68, 190, 28, Array("Tool03_FillNextOpenDate")
+    AddActionButton mToolFrame, "btnToolCheckNavData", "4. 核对净值", 226, 68, 190, 28, Array("Tool04_CheckNavData")
+    AddActionButton mToolFrame, "btnToolQuery181Stats", "5. 查询181", 16, 108, 190, 28, Array("Tool05_Query181NavStats")
+    AddActionButton mToolFrame, "btnToolDeleteEmptyRows", "6. 删除空行", 226, 108, 190, 28, Array("Tool06_DeleteEmptyRows")
 
     AddActionButton Me, "btnClose", "关闭面板", 984, 628, 96, 30, Array("__close__")
 
