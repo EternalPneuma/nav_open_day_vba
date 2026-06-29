@@ -126,11 +126,11 @@ Private Sub OutputDisplayReportCore()
     Application.ScreenUpdating = oldScreenUpdating
 
     Dim finalMsg As String
-    finalMsg = "展示报表生成完成" & vbCrLf & _
-               "输出文件：" & outputPath & vbCrLf & vbCrLf & _
-               "基准日期：" & Format$(baselineDate, "yyyy-mm-dd")
+    finalMsg = "展示报表生成完成" & vbCrLf & vbCrLf & _
+               "基准日期：" & Format$(baselineDate, "yyyy-mm-dd") & vbCrLf & vbCrLf & _
+               "输出文件：" & vbCrLf & outputPath
     If Len(imageNotice) > 0 Then
-        finalMsg = finalMsg & vbCrLf & vbCrLf & imageNotice
+        finalMsg = finalMsg & vbCrLf & vbCrLf & "注意事项：" & vbCrLf & imageNotice
     End If
     MsgBox finalMsg, vbInformation, "展示报表"
     Exit Sub
@@ -147,7 +147,8 @@ CleanFail:
     Application.EnableEvents = oldEnableEvents
     Application.ScreenUpdating = oldScreenUpdating
 
-    MsgBox "展示报表生成失败：" & Err.Description, vbCritical, "展示报表"
+    MsgBox "展示报表生成失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & Err.Description, vbCritical, "展示报表"
 End Sub
 
 Private Function CreateDisplayWorkbook() As Workbook

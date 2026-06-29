@@ -18,6 +18,8 @@ Public Sub ShowOperationPanel()
     Exit Sub
 
 FormNotInstalled:
-    MsgBox "未找到操作面板窗体 frmOperationPanel。请先运行 sync-vba.ps1 同步 optional_panel 模块组。", _
-           vbExclamation, "无法打开操作面板"
+    MsgBox "操作面板无法打开" & vbCrLf & vbCrLf & _
+           "错误信息：未找到操作面板窗体 frmOperationPanel。" & vbCrLf & _
+           "请先运行 sync-vba.ps1 同步 optional_panel 模块组。", _
+           vbExclamation, "操作面板"
 End Sub

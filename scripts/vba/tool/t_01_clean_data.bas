@@ -22,7 +22,9 @@ Public Sub Tool01_CleanDuplicateData()
     lastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).row
     
     If lastRow < 3 Then
-        MsgBox "绘图净值数据中数据少于2行,无需去重。", vbInformation
+        MsgBox "绘图净值数据去重无需处理" & vbCrLf & vbCrLf & _
+               "处理结果：" & vbCrLf & _
+               "绘图净值数据中数据少于2行，无需去重。", vbInformation, "绘图净值数据去重"
         GoTo CleanUp
     End If
     
@@ -79,8 +81,11 @@ NextRow:
     
     '--- 3. 如果没有重复也没有无效行,提前退出 ---
     If duplicateCount = 0 And invalidCount = 0 Then
-        MsgBox "绘图净值数据无重复数据,无需清洗。" & vbCrLf & _
-               "总记录数: " & totalRows, vbInformation
+        MsgBox "绘图净值数据去重无需处理" & vbCrLf & vbCrLf & _
+               "处理结果：" & vbCrLf & _
+               "总记录数：" & totalRows & vbCrLf & _
+               "重复数据：0 条" & vbCrLf & _
+               "无效数据：0 条", vbInformation, "绘图净值数据去重"
         GoTo CleanUp
     End If
     
@@ -91,7 +96,8 @@ NextRow:
     Next i
     
     If keepCount = 0 Then
-        MsgBox "清洗后无任何有效数据,已中止操作。", vbCritical
+        MsgBox "绘图净值数据去重无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：清洗后无任何有效数据，已中止操作。", vbCritical, "绘图净值数据去重"
         GoTo CleanUp
     End If
     
@@ -124,13 +130,14 @@ NextRow:
     End If
     
     '--- 7. 提示 ---
-    MsgBox "清洗完成!" & vbCrLf & _
-           "原记录数: " & totalRows & vbCrLf & _
-           "重复删除: " & duplicateCount & " 条" & vbCrLf & _
-           "无效删除: " & invalidCount & " 条" & vbCrLf & _
-           "保留记录: " & keepCount & " 条" & vbCrLf & _
-           "耗时: " & Format(Timer - t0, "0.00") & " 秒", _
-           vbInformation, "清洗结果"
+    MsgBox "绘图净值数据去重完成" & vbCrLf & vbCrLf & _
+           "耗时：" & Format(Timer - t0, "0.00") & " 秒" & vbCrLf & vbCrLf & _
+           "处理结果：" & vbCrLf & _
+           "原记录数：" & totalRows & vbCrLf & _
+           "重复删除行数：" & duplicateCount & vbCrLf & _
+           "无效删除行数：" & invalidCount & vbCrLf & _
+           "保留记录数：" & keepCount, _
+           vbInformation, "绘图净值数据去重"
 
 CleanUp:
     Application.ScreenUpdating = True

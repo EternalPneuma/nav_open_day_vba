@@ -238,16 +238,18 @@ ContinueRow:
     Application.ScreenUpdating = oldScreenUpdating
 
     Dim msg As String
-    msg = "开放日测算完成" & vbCrLf & _
+    msg = "开放日测算完成" & vbCrLf & vbCrLf & _
+          "基准日期：" & Format$(baselineDate, "yyyy-mm-dd") & vbCrLf & vbCrLf & _
+          "处理结果：" & vbCrLf & _
           "计算产品数：" & processedCount & vbCrLf & _
           "跳过（日开/周开）：" & skippedCount & vbCrLf & _
           "未被跳过但开放日未检测到：" & missingOpenDayCount & vbCrLf & _
-          "净值匹配数：" & navMatchedCount & vbCrLf & _
-          "基准日期：" & Format$(baselineDate, "yyyy-mm-dd")
+          "净值匹配数：" & navMatchedCount
 
     If missingOpenDayCount > 0 Then
         If Len(missingOpenDayDetails) > 2 Then missingOpenDayDetails = Left$(missingOpenDayDetails, Len(missingOpenDayDetails) - 2)
-        msg = msg & vbCrLf & vbCrLf & "未检测到开放日的产品：" & vbCrLf & TruncateMessageText(missingOpenDayDetails, 900)
+        msg = msg & vbCrLf & vbCrLf & "注意事项：" & vbCrLf & _
+              "未检测到开放日的产品：" & vbCrLf & TruncateMessageText(missingOpenDayDetails, 900)
     End If
 
     MsgBox msg, vbInformation, "开放日测算"
@@ -257,7 +259,8 @@ CleanFail:
     Application.Calculation = appCalc
     Application.EnableEvents = oldEnableEvents
     Application.ScreenUpdating = oldScreenUpdating
-    MsgBox "开放日测算失败：" & err.Description, vbCritical, "开放日测算"
+    MsgBox "开放日测算失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & err.Description, vbCritical, "开放日测算"
 End Sub
 
 Private Function IsDailyOrWeeklyInterval(ByVal intervalValue As Variant) As Boolean

@@ -28,14 +28,16 @@ Public Sub Tool05_Query181NavStats()
     Set wsData = GetWorksheet(wb, SOURCE_SHEET_NAME)
 
     If wsData Is Nothing Then
-        MsgBox "未找到工作表：" & SOURCE_SHEET_NAME, vbExclamation, "查询181净值记录"
+        MsgBox "查询181净值记录无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：未找到工作表：" & SOURCE_SHEET_NAME, vbExclamation, "查询181净值记录"
         GoTo CleanUp
     End If
 
     Dim headerRow As Long, codeCol As Long, accountNameCol As Long, dateCol As Long
     headerRow = FindHeaderRow(wsData, FIELD_CODE, HEADER_SCAN_ROWS)
     If headerRow = 0 Then
-        MsgBox "未在前 " & HEADER_SCAN_ROWS & " 行找到字段：" & FIELD_CODE, vbExclamation, "查询181净值记录"
+        MsgBox "查询181净值记录无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：未在前 " & HEADER_SCAN_ROWS & " 行找到字段：" & FIELD_CODE, vbExclamation, "查询181净值记录"
         GoTo CleanUp
     End If
 
@@ -44,7 +46,8 @@ Public Sub Tool05_Query181NavStats()
     dateCol = FindDateColumn(wsData, headerRow)
 
     If codeCol = 0 Or dateCol = 0 Then
-        MsgBox "未找到必要字段。" & vbCrLf & _
+        MsgBox "查询181净值记录无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：未找到必要字段。" & vbCrLf & _
                "必须存在：" & FIELD_CODE & "，以及 日期/净值日期/估值日期 之一。", _
                vbExclamation, "查询181净值记录"
         GoTo CleanUp
@@ -59,7 +62,9 @@ Public Sub Tool05_Query181NavStats()
     lastCol = LastUsedColumn(wsData, headerRow)
 
     If lastRow <= headerRow Then
-        MsgBox SOURCE_SHEET_NAME & " 没有可查询的数据。", vbExclamation, "查询181净值记录"
+        MsgBox "查询181净值记录无需处理" & vbCrLf & vbCrLf & _
+               "处理结果：" & vbCrLf & _
+               SOURCE_SHEET_NAME & " 没有可查询的数据。", vbExclamation, "查询181净值记录"
         GoTo CleanUp
     End If
 
@@ -109,7 +114,9 @@ Public Sub Tool05_Query181NavStats()
     Next i
 
     If recordCount = 0 Then
-        MsgBox "未找到信托计划代码：" & queryCode, vbInformation, "查询181净值记录"
+        MsgBox "查询181净值记录无需处理" & vbCrLf & vbCrLf & _
+               "处理结果：" & vbCrLf & _
+               "未找到信托计划代码：" & queryCode, vbInformation, "查询181净值记录"
         GoTo CleanUp
     End If
 
@@ -133,14 +140,15 @@ Public Sub Tool05_Query181NavStats()
         maxDateText = "-"
     End If
 
-    MsgBox "查询完成。" & vbCrLf & _
-           "信托计划代码: " & queryCode & vbCrLf & _
-           "套账名称: " & DisplayAccountNames(selectedAccountName, accountNameDict) & vbCrLf & _
-           "记录数: " & recordCount & " 条" & vbCrLf & _
-           "最早日期: " & minDateText & vbCrLf & _
-           "最晚日期: " & maxDateText & vbCrLf & _
-           "共计天数: " & totalDays & vbCrLf & _
-           "遗漏天数: " & missingDays & vbCrLf & _
+    MsgBox "查询181净值记录完成" & vbCrLf & vbCrLf & _
+           "处理结果：" & vbCrLf & _
+           "信托计划代码：" & queryCode & vbCrLf & _
+           "套账名称：" & DisplayAccountNames(selectedAccountName, accountNameDict) & vbCrLf & _
+           "记录数：" & recordCount & " 条" & vbCrLf & _
+           "最早日期：" & minDateText & vbCrLf & _
+           "最晚日期：" & maxDateText & vbCrLf & _
+           "共计天数：" & totalDays & vbCrLf & _
+           "遗漏天数：" & missingDays & vbCrLf & _
            BuildMissingDateText(missingDates), _
            vbInformation, "查询181净值记录"
 
@@ -151,7 +159,8 @@ CleanUp:
     Exit Sub
 
 ErrHandler:
-    MsgBox "查询失败：" & Err.Description, vbCritical, "查询181净值记录"
+    MsgBox "查询181净值记录失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & Err.Description, vbCritical, "查询181净值记录"
     Resume CleanUp
 End Sub
 
@@ -168,7 +177,8 @@ Private Function PickOrInputTrustCode(ByVal ws As Worksheet, ByVal codeCol As Lo
 
     If Not selectedRange Is Nothing Then
         If selectedRange.Worksheet.Name <> ws.Name Or selectedRange.Column <> codeCol Or selectedRange.Row <= headerRow Then
-            MsgBox "请选择工作表“" & ws.Name & "”中“" & FIELD_CODE & "”列的数据单元格。", _
+            MsgBox "查询181净值记录无法继续" & vbCrLf & vbCrLf & _
+                   "错误信息：请选择工作表“" & ws.Name & "”中“" & FIELD_CODE & "”列的数据单元格。", _
                    vbExclamation, "查询181净值记录"
             Exit Function
         End If

@@ -100,18 +100,20 @@ Private Sub ImportNAVIncremental181Core()
     End If
 
     Dim message As String
-    message = "增量导入完成" & vbCrLf & _
-              "源目录：" & sourceDir & vbCrLf & _
-              "导入前最新日期：" & latestText & vbCrLf & _
+    message = "净值数据增量导入完成" & vbCrLf & vbCrLf & _
+              "处理范围：" & sourceDir & vbCrLf & _
+              "导入前最新日期：" & latestText & vbCrLf & vbCrLf & _
+              "处理结果：" & vbCrLf & _
               "符合要求表格数：" & processedFiles & vbCrLf & _
               "处理文件数：" & processedFiles & vbCrLf & _
               "新增行数：" & importedRows & vbCrLf & _
-              "跳过旧日期行：" & skippedOldRows & vbCrLf & _
-              "跳过重复行：" & skippedDuplicateRows & vbCrLf & _
-              "跳过空行：" & skippedBlankRows & vbCrLf & _
+              "跳过旧日期行数：" & skippedOldRows & vbCrLf & _
+              "跳过重复行数：" & skippedDuplicateRows & vbCrLf & _
+              "跳过空行数：" & skippedBlankRows & vbCrLf & _
               "导入后重复业务行数：" & postDuplicateRows
     If Len(failedFiles) > 0 Then
-        message = message & vbCrLf & vbCrLf & "读取失败文件/工作表：" & vbCrLf & failedFiles
+        message = message & vbCrLf & vbCrLf & "注意事项：" & vbCrLf & _
+                  "读取失败文件/工作表：" & vbCrLf & failedFiles
     End If
     MsgBox message, vbInformation, "净值数据增量导入"
     Exit Sub
@@ -122,7 +124,8 @@ CleanFail:
     Application.AskToUpdateLinks = oldAskToUpdateLinks
     Application.EnableEvents = oldEnableEvents
     Application.ScreenUpdating = oldScreenUpdating
-    MsgBox "增量导入失败：" & Err.Description, vbCritical, "净值数据增量导入"
+    MsgBox "净值数据增量导入失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & Err.Description, vbCritical, "净值数据增量导入"
 End Sub
 
 Private Sub ImportNewRowsFromFolder(ByVal sourceDir As String, ByVal wsTarget As Worksheet, ByVal targetHeaderMap As Object, _

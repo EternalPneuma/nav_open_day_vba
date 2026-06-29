@@ -126,8 +126,9 @@ ContinueRow:
     Application.EnableEvents = oldEnableEvents
     Application.ScreenUpdating = oldScreenUpdating
 
-    MsgBox "下一开放日补算完成" & vbCrLf & _
-           "基准日期：" & Format$(baselineDate, "yyyy-mm-dd") & vbCrLf & _
+    MsgBox "下一开放日补算完成" & vbCrLf & vbCrLf & _
+           "基准日期：" & Format$(baselineDate, "yyyy-mm-dd") & vbCrLf & vbCrLf & _
+           "处理结果：" & vbCrLf & _
            "开放日表已有下一开放日：" & existingOpenDayCount & vbCrLf & _
            "按理论间隔推算：" & inferredCount & vbCrLf & _
            "追加开放日记录：" & appendedOpenDayCount & vbCrLf & _
@@ -139,7 +140,8 @@ CleanFail:
     Application.Calculation = appCalc
     Application.EnableEvents = oldEnableEvents
     Application.ScreenUpdating = oldScreenUpdating
-    MsgBox "下一开放日补算失败：" & Err.Description, vbCritical, "下一开放日补算"
+    MsgBox "下一开放日补算失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & Err.Description, vbCritical, "下一开放日补算"
 End Sub
 
 Private Function BuildOpenDayIndex() As Object

@@ -39,7 +39,8 @@ Public Sub Chart04_ExportImages()
     Loop
       
     If Len(latestFile) = 0 Then
-        MsgBox "未找到[产品净值汇总_yyyymmdd.xlsx]文件,请先运行[生成产品图表]。", vbExclamation
+        MsgBox "产品图片导出无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：未找到[产品净值汇总_yyyymmdd.xlsx]文件，请先运行[生成产品图表]。", vbExclamation, "产品图片导出"
         GoTo CleanUp
     End If
 
@@ -142,15 +143,18 @@ NextSheet:
 
     '--- 6. 汇总提示 ---
     Dim msg As String
-    msg = "导出完成!" & vbCrLf & _
-          "拼接图输出: " & outFolder & vbCrLf & _
-          "原图输出: " & rawFolder & vbCrLf & _
-          "处理产品数: " & processedCount & vbCrLf & _
-          "耗时: " & Format(Timer - t0, "0.00") & " 秒"
+    msg = "产品图片导出完成" & vbCrLf & vbCrLf & _
+          "耗时：" & Format(Timer - t0, "0.00") & " 秒" & vbCrLf & vbCrLf & _
+          "处理结果：" & vbCrLf & _
+          "处理产品数：" & processedCount & vbCrLf & vbCrLf & _
+          "输出文件：" & vbCrLf & _
+          "拼接图输出：" & outFolder & vbCrLf & _
+          "原图输出：" & rawFolder
     If Len(errMsg) > 0 Then
-        msg = msg & vbCrLf & vbCrLf & "异常:" & vbCrLf & Left(errMsg, Len(errMsg) - 2)
+        msg = msg & vbCrLf & vbCrLf & "注意事项：" & vbCrLf & _
+              "异常：" & vbCrLf & Left(errMsg, Len(errMsg) - 2)
     End If
-    MsgBox msg, vbInformation, "处理结果"
+    MsgBox msg, vbInformation, "产品图片导出"
 
 CleanUp:
     Application.ScreenUpdating = True

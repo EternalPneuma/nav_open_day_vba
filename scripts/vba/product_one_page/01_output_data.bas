@@ -138,11 +138,13 @@ NextProduct:
     Application.ScreenUpdating = oldScreenUpdating
 
     Dim finalMsg As String
-    finalMsg = "产品一页通数据导出完成" & vbCrLf & _
-               "输出文件：" & outputPath & vbCrLf & _
-               "导出产品数：" & exportedCount
+    finalMsg = "产品一页通数据导出完成" & vbCrLf & vbCrLf & _
+               "处理结果：" & vbCrLf & _
+               "导出产品数：" & exportedCount & vbCrLf & vbCrLf & _
+               "输出文件：" & vbCrLf & outputPath
     If Len(missingText) > 0 Then
-        finalMsg = finalMsg & vbCrLf & vbCrLf & "未导出明细：" & vbCrLf & missingText
+        finalMsg = finalMsg & vbCrLf & vbCrLf & "注意事项：" & vbCrLf & _
+                   "未导出明细：" & vbCrLf & missingText
     End If
     MsgBox finalMsg, vbInformation, "产品一页通"
     Exit Sub
@@ -165,7 +167,8 @@ CleanFail:
     If Len(failDescription) = 0 Then failDescription = "未知错误"
     If Len(failStep) = 0 Then failStep = "未记录"
 
-    MsgBox "产品一页通数据导出失败：" & failDescription & vbCrLf & _
+    MsgBox "产品一页通数据导出失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & failDescription & vbCrLf & _
            "错误号：" & failNumber & vbCrLf & _
            "步骤：" & failStep, vbCritical, "产品一页通"
 End Sub

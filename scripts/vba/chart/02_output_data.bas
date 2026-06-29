@@ -48,14 +48,18 @@ Public Sub Chart02_ExportProductSummary()
     Dim dimCodeCol As Long
     dimCodeCol = FindFirstExistingHeader(dimHeaderMap, Array(COL_TRUST_CODE, COL_PRODUCT_CODE, COL_PRODUCT_CODE_ALT, COL_CODE))
     If dimCodeCol = 0 Then
-        MsgBox "产品信息中缺少可用于匹配的代码字段：" & COL_TRUST_CODE & " / " & COL_PRODUCT_CODE & " / " & COL_PRODUCT_CODE_ALT, vbExclamation
+        MsgBox "产品净值汇总导出无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：产品信息中缺少可用于匹配的代码字段：" & COL_TRUST_CODE & " / " & COL_PRODUCT_CODE & " / " & COL_PRODUCT_CODE_ALT, _
+               vbExclamation, "产品净值汇总导出"
         GoTo CleanUp
     End If
     
     Dim dimShortCol As Long
     dimShortCol = FindFirstExistingHeader(dimHeaderMap, Array(COL_PRODUCT_SHORT, COL_PRODUCT_NAME, COL_PRODUCT_FULL_NAME, COL_TRUST_NAME))
     If dimShortCol = 0 Then
-        MsgBox "产品信息中缺少可用于命名sheet的名称字段：" & COL_PRODUCT_SHORT & " / " & COL_PRODUCT_NAME & " / " & COL_PRODUCT_FULL_NAME, vbExclamation
+        MsgBox "产品净值汇总导出无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：产品信息中缺少可用于命名sheet的名称字段：" & COL_PRODUCT_SHORT & " / " & COL_PRODUCT_NAME & " / " & COL_PRODUCT_FULL_NAME, _
+               vbExclamation, "产品净值汇总导出"
         GoTo CleanUp
     End If
     
@@ -70,7 +74,8 @@ Public Sub Chart02_ExportProductSummary()
     Dim dimLastRow As Long
     dimLastRow = wsDim.Cells(wsDim.Rows.Count, dimCodeCol).End(xlUp).Row
     If dimLastRow < 2 Then
-        MsgBox "产品信息中没有数据,请先完善产品信息。", vbExclamation
+        MsgBox "产品净值汇总导出无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：产品信息中没有数据，请先完善产品信息。", vbExclamation, "产品净值汇总导出"
         GoTo CleanUp
     End If
     
@@ -91,7 +96,8 @@ Public Sub Chart02_ExportProductSummary()
     Next i
         
     If dimDict.Count = 0 Then
-        MsgBox "产品信息中未读取到有效的产品编号/信托计划代码和产品简称/产品名称。", vbExclamation
+        MsgBox "产品净值汇总导出无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：产品信息中未读取到有效的产品编号/信托计划代码和产品简称/产品名称。", vbExclamation, "产品净值汇总导出"
         GoTo CleanUp
     End If
         
@@ -100,7 +106,8 @@ Public Sub Chart02_ExportProductSummary()
     dataLastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).Row
     
     If dataLastRow < 2 Then
-        MsgBox "绘图净值数据中没有数据可导出。", vbExclamation
+        MsgBox "产品净值汇总导出无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：绘图净值数据中没有数据可导出。", vbExclamation, "产品净值汇总导出"
         GoTo CleanUp
     End If
     
@@ -290,7 +297,8 @@ NextProduct:
     '--- 4. 保存文件 ---
     If exportedCount = 0 Then
         wbOut.Close SaveChanges:=False
-        MsgBox "没有可导出的产品数据。", vbExclamation
+        MsgBox "产品净值汇总导出无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：没有可导出的产品数据。", vbExclamation, "产品净值汇总导出"
         GoTo CleanUp
     End If
     
@@ -314,16 +322,18 @@ NextProduct:
     
     '--- 5. 汇总提示 ---
     Dim msg As String
-    msg = "导出完成!" & vbCrLf & _
-          "输出文件: " & outFileName & vbCrLf & _
-          "导出产品数: " & exportedCount & " 个" & vbCrLf & _
-          "耗时: " & Format(Timer - t0, "0.00") & " 秒"
+    msg = "产品净值汇总导出完成" & vbCrLf & vbCrLf & _
+          "耗时：" & Format(Timer - t0, "0.00") & " 秒" & vbCrLf & vbCrLf & _
+          "处理结果：" & vbCrLf & _
+          "导出产品数：" & exportedCount & " 个" & vbCrLf & vbCrLf & _
+          "输出文件：" & vbCrLf & outPath
     
     msg = msg & vbCrLf & vbCrLf & _
-          "产品信息有、绘图净值数据无(仅记录): " & emptyProducts.Count & " 个" & vbCrLf & _
-          "绘图净值数据有、产品信息未配置(未导出): " & missingProducts.Count & " 个"
+          "注意事项：" & vbCrLf & _
+          "产品信息有、绘图净值数据无（仅记录）：" & emptyProducts.Count & " 个" & vbCrLf & _
+          "绘图净值数据有、产品信息未配置（未导出）：" & missingProducts.Count & " 个"
     If dimChartExportCol > 0 Then
-        msg = msg & vbCrLf & "绘图净值数据有、图表导出未启用(未导出): " & disabledProducts.Count & " 个"
+        msg = msg & vbCrLf & "绘图净值数据有、图表导出未启用（未导出）：" & disabledProducts.Count & " 个"
     End If
     msg = msg & vbCrLf & "详情见导出文件“数据摘要”sheet。"
         
@@ -335,11 +345,11 @@ NextProduct:
         
     If totalFilled > 0 Then
         msg = msg & vbCrLf & vbCrLf & _
-              "30日年化收益率: 计算填补 " & totalFilled & " 条" & vbCrLf & _
-              "(详情见导出文件“数据摘要”sheet;原始有效值已保留)"
+              "30日年化收益率计算填补：" & totalFilled & " 条" & vbCrLf & _
+              "详情见导出文件“数据摘要”sheet，原始有效值已保留。"
     End If
         
-    MsgBox msg, vbInformation, "导出结果"
+    MsgBox msg, vbInformation, "产品净值汇总导出"
         
 CleanUp:
     Application.ScreenUpdating = True
@@ -1032,5 +1042,4 @@ Private Function LastUsedColumn(ByVal ws As Worksheet) As Long
         LastUsedColumn = foundCell.Column
     End If
 End Function
-
 

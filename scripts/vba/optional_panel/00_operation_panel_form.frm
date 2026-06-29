@@ -6,62 +6,81 @@ Option Explicit
 
 Private mButtonHandlers As Collection
 Private mStatusLabel As MSForms.Label
-Private mChartFrame As MSForms.Frame
-Private mDataFrame As MSForms.Frame
+Private mMainFrame As MSForms.Frame
 Private mRecommendationFrame As MSForms.Frame
 Private mOnePageFrame As MSForms.Frame
 Private mToolFrame As MSForms.Frame
+Private mGuideFrame As MSForms.Frame
 
 Private Sub UserForm_Initialize()
     Me.Caption = "上层产品净值自动化操作面板"
-    Me.Width = 1265
-    Me.Height = 455
+    Me.Width = 1120
+    Me.Height = 700
     Me.BackColor = RGB(248, 248, 248)
 
     Set mButtonHandlers = New Collection
 
-    AddTitleLabel "titleMain", "自动化操作面板", 18, 14, 1225, 24, 12, True
-    AddTitleLabel "titleDesc", "请按业务流程顺序运行；一键流程会依次调用下方各步骤。", 18, 42, 1225, 18, 9, False
+    AddTitleLabel "titleMain", "上层产品净值自动化操作面板", 18, 14, 1080, 24, 12, True
+    AddTitleLabel "titleDesc", "推荐优先使用“产品业绩展示”一键流程；单项按钮用于补跑、排查或手工维护。", 18, 42, 1080, 18, 9, False
 
-    Set mChartFrame = AddSection("frameChart", "图表流程 chart", 18, 76, 225, 255)
-    AddActionButton mChartFrame, "btnChartAll", "一键运行图表流程", 16, 28, 190, 30, Array("Chart01_ImportNavData", "Chart02_ExportProductSummary", "Chart03_GenerateCharts", "Chart04_ExportImages")
-    AddActionButton mChartFrame, "btnChartStep1", "1. 导入净值数据(净值)", 16, 70, 190, 28, Array("Chart01_ImportNavData")
-    AddActionButton mChartFrame, "btnChartStep2", "2. 输出产品净值汇总", 16, 106, 190, 28, Array("Chart02_ExportProductSummary")
-    AddActionButton mChartFrame, "btnChartStep3", "3. 生成产品图表", 16, 142, 190, 28, Array("Chart03_GenerateCharts")
-    AddActionButton mChartFrame, "btnChartStep4", "4. 导出产品图片", 16, 178, 190, 28, Array("Chart04_ExportImages")
+    Set mMainFrame = AddSection("frameMainWorkflow", "产品业绩展示", 18, 76, 600, 255)
+    AddActionButton mMainFrame, "btnMainAll", "一键生成展示文件（推荐）", 16, 28, 560, 30, Array("Data01_ImportNav181", "Data02_CalculateOpenDate", "Data03_ExportProductReport", "Chart01_ImportNavData", "Chart02_ExportProductSummary", "Chart03_GenerateCharts", "Chart04_ExportImages", "Data04_ExportDisplayReport")
+    AddActionButton mMainFrame, "btnMainStep1", "1. 导入净值数据(181)", 16, 70, 174, 28, Array("Data01_ImportNav181")
+    AddActionButton mMainFrame, "btnMainStep2", "2. 测算开放日", 207, 70, 174, 28, Array("Data02_CalculateOpenDate")
+    AddActionButton mMainFrame, "btnMainStep3", "3. 输出分类表现", 398, 70, 174, 28, Array("Data03_ExportProductReport")
+    AddActionButton mMainFrame, "btnMainStep4", "4. 导入绘图净值", 16, 112, 174, 28, Array("Chart01_ImportNavData")
+    AddActionButton mMainFrame, "btnMainStep5", "5. 输出产品汇总", 207, 112, 174, 28, Array("Chart02_ExportProductSummary")
+    AddActionButton mMainFrame, "btnMainStep6", "6. 生成产品图表", 398, 112, 174, 28, Array("Chart03_GenerateCharts")
+    AddActionButton mMainFrame, "btnMainStep7", "7. 导出产品图片", 16, 154, 174, 28, Array("Chart04_ExportImages")
+    AddActionButton mMainFrame, "btnMainStep8", "8. 输出展示报表", 207, 154, 365, 28, Array("Data04_ExportDisplayReport")
+    AddInfoLabel mMainFrame, "lblMainNote", "顺序：导入 181 净值 → 测算开放日 → 输出分类表现 → 生成图表图片 → 输出展示报表。", 16, 202, 560, 32
 
-    Set mDataFrame = AddSection("frameData", "数据流程 data", 263, 76, 225, 255)
-    AddActionButton mDataFrame, "btnDataAll", "一键运行数据流程", 16, 28, 190, 30, Array("Data01_ImportNav181", "Data02_CalculateOpenDate", "Data03_ExportProductReport", "Data04_ExportDisplayReport")
-    AddActionButton mDataFrame, "btnDataStep1", "1. 导入净值数据(181)", 16, 70, 190, 28, Array("Data01_ImportNav181")
-    AddActionButton mDataFrame, "btnDataStep2", "2. 测算开放日", 16, 106, 190, 28, Array("Data02_CalculateOpenDate")
-    AddActionButton mDataFrame, "btnDataStep3", "3. 输出分类表现", 16, 142, 190, 28, Array("Data03_ExportProductReport")
-    AddActionButton mDataFrame, "btnDataStep4", "4. 输出展示报表", 16, 178, 190, 28, Array("Data04_ExportDisplayReport")
+    Set mGuideFrame = AddSection("frameGuide", "操作指南", 640, 76, 440, 535)
+    AddInfoLabel mGuideFrame, "lblGuide", _
+        "一、产品业绩展示" & vbCrLf & _
+        "用途：生成稳享长期限、直销、交通银行、江苏银行等展示文件。" & vbCrLf & _
+        "数据：在内网系统“自定义查询”搜索“181”，下载固收部产品净值文件，并保存到当前工作簿同级目录。" & vbCrLf & _
+        "维护：基准收益率不自动抓取，如需更新，请在“产品分类”sheet 手工维护。" & vbCrLf & vbCrLf & _
+        "二、一页通" & vbCrLf & _
+        "用途：生成汇鑫1号、交鑫致远一页通材料。" & vbCrLf & _
+        "说明：主流程的“导入绘图净值”已覆盖 00 补充净值；一键按钮默认只运行 01-03。" & vbCrLf & _
+        "依赖：REITs 数据可参考 scripts/tools/fetch_reits_total_return.py 获取，内网机通常无法直接运行。" & vbCrLf & vbCrLf & _
+        "三、推荐材料" & vbCrLf & _
+        "用途：生成汇益5号、汇益稳健101号推荐材料。" & vbCrLf & _
+        "顺序：先更新依赖数据，再生成材料。" & vbCrLf & vbCrLf & _
+        "四、维护工具" & vbCrLf & _
+        "用途：去重、删除指定产品、补开放日、核对净值、查询 181 记录、删除当前工作表空行。" & vbCrLf & vbCrLf & _
+        "五、运行前检查" & vbCrLf & _
+        "请先保存当前工作簿，确认源文件位于同级目录，且输出文件未被打开占用。", _
+        16, 28, 405, 470, 8
 
-    Set mRecommendationFrame = AddSection("frameRecommendation", "推荐材料 weekly_recommendation", 508, 76, 225, 255)
-    AddActionButton mRecommendationFrame, "btnRecommendationAll", "一键运行推荐材料流程", 16, 28, 190, 30, Array("Weekly01_UpdateDependencies", "Weekly02_GenerateReport")
-    AddActionButton mRecommendationFrame, "btnRecommendationStep1", "1. 更新推荐材料依赖", 16, 70, 190, 28, Array("Weekly01_UpdateDependencies")
-    AddActionButton mRecommendationFrame, "btnRecommendationStep2", "2. 生成推荐材料", 16, 106, 190, 28, Array("Weekly02_GenerateReport")
+    Set mOnePageFrame = AddSection("frameOnePage", "一页通", 18, 348, 290, 150)
+    AddActionButton mOnePageFrame, "btnOnePageAll", "一键运行一页通流程", 16, 28, 250, 30, Array("OnePage01_ExportChartData", "OnePage02_GenerateCharts", "OnePage03_ExportPptPdf")
+    AddActionButton mOnePageFrame, "btnOnePageStep0", "0. 补充净值", 16, 72, 115, 28, Array("OnePage00_CheckAndImportNavData")
+    AddActionButton mOnePageFrame, "btnOnePageStep1", "1. 导出数据", 151, 72, 115, 28, Array("OnePage01_ExportChartData")
+    AddActionButton mOnePageFrame, "btnOnePageStep2", "2. 生成图表", 16, 108, 115, 28, Array("OnePage02_GenerateCharts")
+    AddActionButton mOnePageFrame, "btnOnePageStep3", "3. 导出PPT/PDF", 151, 108, 115, 28, Array("OnePage03_ExportPptPdf")
 
-    Set mOnePageFrame = AddSection("frameOnePage", "单产品一页 product_one_page", 753, 76, 225, 255)
-    AddActionButton mOnePageFrame, "btnOnePageAll", "一键运行单产品一页流程", 16, 28, 190, 30, Array("OnePage00_CheckAndImportNavData", "OnePage01_ExportChartData", "OnePage02_GenerateCharts", "OnePage03_ExportPptPdf")
-    AddActionButton mOnePageFrame, "btnOnePageStep0", "0. 检查并补充净值数据", 16, 70, 190, 28, Array("OnePage00_CheckAndImportNavData")
-    AddActionButton mOnePageFrame, "btnOnePageStep1", "1. 导出一页通数据", 16, 106, 190, 28, Array("OnePage01_ExportChartData")
-    AddActionButton mOnePageFrame, "btnOnePageStep2", "2. 生成一页通图表", 16, 142, 190, 28, Array("OnePage02_GenerateCharts")
-    AddActionButton mOnePageFrame, "btnOnePageStep3", "3. 导出 PPT/PDF", 16, 178, 190, 28, Array("OnePage03_ExportPptPdf")
+    Set mRecommendationFrame = AddSection("frameRecommendation", "推荐材料", 328, 348, 290, 150)
+    AddActionButton mRecommendationFrame, "btnRecommendationAll", "一键运行推荐材料流程", 16, 28, 250, 30, Array("Weekly01_UpdateDependencies", "Weekly02_GenerateReport")
+    AddActionButton mRecommendationFrame, "btnRecommendationStep1", "1. 更新依赖", 16, 72, 115, 28, Array("Weekly01_UpdateDependencies")
+    AddActionButton mRecommendationFrame, "btnRecommendationStep2", "2. 生成材料", 151, 72, 115, 28, Array("Weekly02_GenerateReport")
 
-    Set mToolFrame = AddSection("frameTool", "维护工具 tool", 998, 76, 225, 255)
-    AddActionButton mToolFrame, "btnToolCleanData", "1. 【绘图净值数据】去重", 16, 70, 190, 28, Array("Tool01_CleanDuplicateData")
-    AddActionButton mToolFrame, "btnToolDeleteData", "2. 按产品编号删除数据", 16, 106, 190, 28, Array("Tool02_DeleteByProductId")
-    AddActionButton mToolFrame, "btnToolFillOpenDate", "3. 补充下一开放日", 16, 142, 190, 28, Array("Tool03_FillNextOpenDate")
-    AddActionButton mToolFrame, "btnToolCheckNavData", "4. 核对净值数据", 16, 178, 190, 28, Array("Tool04_CheckNavData")
+    Set mToolFrame = AddSection("frameTool", "维护工具", 18, 515, 600, 96)
+    AddActionButton mToolFrame, "btnToolCleanData", "1. 绘图去重", 16, 28, 84, 28, Array("Tool01_CleanDuplicateData")
+    AddActionButton mToolFrame, "btnToolDeleteData", "2. 删除产品", 110, 28, 84, 28, Array("Tool02_DeleteByProductId")
+    AddActionButton mToolFrame, "btnToolFillOpenDate", "3. 补开放日", 204, 28, 84, 28, Array("Tool03_FillNextOpenDate")
+    AddActionButton mToolFrame, "btnToolCheckNavData", "4. 核对净值", 298, 28, 84, 28, Array("Tool04_CheckNavData")
+    AddActionButton mToolFrame, "btnToolQuery181Stats", "5. 查询181", 392, 28, 84, 28, Array("Tool05_Query181NavStats")
+    AddActionButton mToolFrame, "btnToolDeleteEmptyRows", "6. 删空行", 486, 28, 84, 28, Array("Tool06_DeleteEmptyRows")
 
-    AddActionButton Me, "btnClose", "关闭面板", 1130, 348, 96, 30, Array("__close__")
+    AddActionButton Me, "btnClose", "关闭面板", 984, 628, 96, 30, Array("__close__")
 
     Set mStatusLabel = Me.Controls.Add("Forms.Label.1", "lblStatus", True)
     With mStatusLabel
         .Left = 18
-        .Top = 348
-        .Width = 1085
+        .Top = 628
+        .Width = 940
         .Height = 54
         .Caption = "状态：等待操作。"
         .BackStyle = fmBackStyleTransparent
@@ -84,8 +103,11 @@ Public Sub RunPanelAction(ByVal actionTitle As String, ByVal macroNames As Varia
 
     Dim confirmText As String
     confirmText = "确认运行：" & actionTitle & "？" & vbCrLf & vbCrLf & _
-                  "运行前请确认当前工作簿已保存，且相关源文件已经放在同级目录。"
-    If MsgBox(confirmText, vbQuestion + vbYesNo + vbDefaultButton2, "确认运行") <> vbYes Then Exit Sub
+                  "运行前请确认：" & vbCrLf & _
+                  "1. 当前工作簿已保存。" & vbCrLf & _
+                  "2. 相关源文件已经放在同级目录。" & vbCrLf & _
+                  "3. 需要的输出文件未被其他程序占用。"
+    If MsgBox(confirmText, vbQuestion + vbYesNo + vbDefaultButton2, "操作面板") <> vbYes Then Exit Sub
 
     Dim oldScreenUpdating As Boolean
     Dim oldEnableEvents As Boolean
@@ -120,7 +142,9 @@ CleanExit:
 
 RunFail:
     SetStatus "失败：" & actionTitle & vbCrLf & Err.Description
-    MsgBox "运行失败：" & actionTitle & vbCrLf & vbCrLf & Err.Description, vbExclamation, "操作面板"
+    MsgBox "操作面板运行失败" & vbCrLf & vbCrLf & _
+           "任务名称：" & actionTitle & vbCrLf & _
+           "错误信息：" & Err.Description, vbExclamation, "操作面板"
     Resume CleanExit
 End Sub
 
@@ -177,6 +201,30 @@ Private Sub AddTitleLabel(ByVal controlName As String, _
         .Font.Name = "微软雅黑"
         .Font.Size = fontSize
         .Font.Bold = isBold
+    End With
+End Sub
+
+Private Sub AddInfoLabel(ByVal parentControl As Object, _
+                         ByVal controlName As String, _
+                         ByVal captionText As String, _
+                         ByVal leftPos As Single, _
+                         ByVal topPos As Single, _
+                         ByVal controlWidth As Single, _
+                         ByVal controlHeight As Single, _
+                         Optional ByVal fontSize As Single = 9)
+    Dim labelCtl As MSForms.Label
+    Set labelCtl = parentControl.Controls.Add("Forms.Label.1", controlName, True)
+    With labelCtl
+        .Caption = captionText
+        .Left = leftPos
+        .Top = topPos
+        .Width = controlWidth
+        .Height = controlHeight
+        .BackStyle = fmBackStyleTransparent
+        .ForeColor = RGB(70, 70, 70)
+        .Font.Name = "微软雅黑"
+        .Font.Size = fontSize
+        .WordWrap = True
     End With
 End Sub
 

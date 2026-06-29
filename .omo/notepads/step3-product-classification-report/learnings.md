@@ -1,3 +1,0 @@
-- Added `WriteCommonFields(wbOutput As Workbook, ByRef rowCounters As Object)` to copy 产品分类 common fields into the 3 output sheets.
-- The function reads `ThisWorkbook.Worksheets(TARGET_SHEET_NAME)` with `BuildHeaderMap`, skips blank/unsupported 分类 rows, formats date columns as `yyyy-mm-dd`, and advances per-sheet row counters from row 2.
-- Direct-category rows also copy `基准收益率` into column 10 when present.

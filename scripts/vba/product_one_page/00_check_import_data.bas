@@ -168,7 +168,8 @@ ContinueSourceRow:
     Application.ScreenUpdating = oldScreenUpdating
 
     Dim msg As String
-    msg = "产品一页通数据预检查完成" & vbCrLf & _
+    msg = "产品一页通数据预检查完成" & vbCrLf & vbCrLf & _
+          "处理结果：" & vbCrLf & _
           "新增导入行数：" & importedRows & vbCrLf & _
           "涉及产品数：" & importedProducts & vbCrLf & _
           "源数据无对应产品编号行数：" & skippedNoTargetCount & vbCrLf & _
@@ -179,9 +180,11 @@ ContinueSourceRow:
           "净值为0行数：" & zeroNavCount
 
     If importedRows = 0 Then
-        msg = msg & vbCrLf & vbCrLf & "没有发现需要导入的新净值数据。"
+        msg = msg & vbCrLf & vbCrLf & "注意事项：" & vbCrLf & _
+              "没有发现需要导入的新净值数据。"
     Else
-        msg = msg & vbCrLf & vbCrLf & "请继续运行 OnePage01_ExportChartData。"
+        msg = msg & vbCrLf & vbCrLf & "注意事项：" & vbCrLf & _
+              "请继续运行 OnePage01_ExportChartData。"
     End If
 
     MsgBox msg, vbInformation, "产品一页通"
@@ -205,7 +208,8 @@ CleanFail:
     If Len(failDescription) = 0 Then failDescription = "未知错误"
     If Len(failStep) = 0 Then failStep = "未记录"
 
-    MsgBox "产品一页通数据预检查失败：" & failDescription & vbCrLf & _
+    MsgBox "产品一页通数据预检查失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & failDescription & vbCrLf & _
            "错误号：" & failNumber & vbCrLf & _
            "步骤：" & failStep, vbCritical, "产品一页通"
 End Sub

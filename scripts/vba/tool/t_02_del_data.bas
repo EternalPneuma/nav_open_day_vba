@@ -12,8 +12,9 @@ Public Sub Tool02_DeleteByProductId()
     
     '--- 1. 用户输入产品编号 ---
     Dim userInput As String
-    userInput = InputBox("请输入要删除的产品编号:" & vbCrLf & vbCrLf & _
-                         "提示: 该编号在绘图净值数据中的所有记录将被永久删除", _
+    userInput = InputBox("请输入要删除的产品编号：" & vbCrLf & vbCrLf & _
+                         "注意事项：" & vbCrLf & _
+                         "该编号在绘图净值数据中的所有记录将被永久删除。", _
                          "按产品编号删除数据")
     
     ' InputBox点取消返回空字符串
@@ -23,7 +24,8 @@ Public Sub Tool02_DeleteByProductId()
     
     Dim targetCode As String: targetCode = Trim(userInput)
     If Len(targetCode) = 0 Then
-        MsgBox "产品编号不能为空。", vbExclamation
+        MsgBox "按产品编号删除数据无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：产品编号不能为空。", vbExclamation, "按产品编号删除数据"
         Exit Sub
     End If
     
@@ -32,7 +34,9 @@ Public Sub Tool02_DeleteByProductId()
     lastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).row
     
     If lastRow < 2 Then
-        MsgBox "绘图净值数据中没有数据。", vbInformation
+        MsgBox "按产品编号删除数据无需处理" & vbCrLf & vbCrLf & _
+               "处理结果：" & vbCrLf & _
+               "绘图净值数据中没有数据。", vbInformation, "按产品编号删除数据"
         Exit Sub
     End If
     
@@ -66,30 +70,37 @@ Public Sub Tool02_DeleteByProductId()
     Next i
     
     If matchCount = 0 Then
-        MsgBox "在绘图净值数据中未找到产品编号 [" & targetCode & "] 的记录。" & vbCrLf & vbCrLf & _
-               "请检查编号是否正确(注意大小写和前后空格)。", vbInformation
+        MsgBox "按产品编号删除数据无需处理" & vbCrLf & vbCrLf & _
+               "处理结果：" & vbCrLf & _
+               "未找到产品编号：" & targetCode & vbCrLf & vbCrLf & _
+               "注意事项：" & vbCrLf & _
+               "请检查编号是否正确（注意大小写和前后空格）。", vbInformation, "按产品编号删除数据"
         Exit Sub
     End If
     
     '--- 3. 二次确认 ---
     Dim msg As String
-    msg = "找到产品编号 [" & targetCode & "] 的记录:" & vbCrLf & vbCrLf & _
-          "  记录条数: " & matchCount & vbCrLf
+    msg = "确认删除产品净值数据" & vbCrLf & vbCrLf & _
+          "处理结果：" & vbCrLf & _
+          "产品编号：" & targetCode & vbCrLf & _
+          "记录条数：" & matchCount & vbCrLf
     
     If maxDate >= minDate Then
-        msg = msg & "  起始日期: " & Format(minDate, "yyyy-mm-dd") & vbCrLf & _
-                    "  结束日期: " & Format(maxDate, "yyyy-mm-dd") & vbCrLf
+        msg = msg & "起始日期：" & Format(minDate, "yyyy-mm-dd") & vbCrLf & _
+                    "结束日期：" & Format(maxDate, "yyyy-mm-dd") & vbCrLf
     End If
     
     msg = msg & vbCrLf & _
-          "确定要永久删除这些记录吗?" & vbCrLf & _
-          "(此操作不可撤销)"
+          "注意事项：" & vbCrLf & _
+          "确定要永久删除这些记录吗？此操作不可撤销。"
     
     Dim resp As VbMsgBoxResult
-    resp = MsgBox(msg, vbYesNo + vbExclamation + vbDefaultButton2, "确认删除")
+    resp = MsgBox(msg, vbYesNo + vbExclamation + vbDefaultButton2, "按产品编号删除数据")
     
     If resp <> vbYes Then
-        MsgBox "已取消,未删除任何数据。", vbInformation
+        MsgBox "按产品编号删除数据已取消" & vbCrLf & vbCrLf & _
+               "处理结果：" & vbCrLf & _
+               "未删除任何数据。", vbInformation, "按产品编号删除数据"
         Exit Sub
     End If
     
@@ -120,11 +131,12 @@ Public Sub Tool02_DeleteByProductId()
     Application.EnableEvents = True
     
     '--- 5. 完成提示 ---
-    MsgBox "删除完成!" & vbCrLf & vbCrLf & _
-           "产品编号: " & targetCode & vbCrLf & _
-           "已删除: " & matchCount & " 条记录" & vbCrLf & _
-           "耗时: " & Format(Timer - t0, "0.00") & " 秒", _
-           vbInformation, "完成"
+    MsgBox "按产品编号删除数据完成" & vbCrLf & vbCrLf & _
+           "耗时：" & Format(Timer - t0, "0.00") & " 秒" & vbCrLf & vbCrLf & _
+           "处理结果：" & vbCrLf & _
+           "产品编号：" & targetCode & vbCrLf & _
+           "已删除记录数：" & matchCount, _
+           vbInformation, "按产品编号删除数据"
 End Sub
 
 

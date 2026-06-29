@@ -103,10 +103,11 @@ Public Sub Weekly02_GenerateReport()
     wbOut.SaveAs Filename:=outputPath, FileFormat:=xlOpenXMLWorkbook
     wbOut.Close SaveChanges:=False
     
-    MsgBox "推荐材料生成完成。" & vbCrLf & _
-           "输出文件: " & outputPath & vbCrLf & _
-           "产品数量: " & productCount & vbCrLf & _
-           "耗时: " & Format(Timer - t0, "0.0") & " 秒", vbInformation
+    MsgBox "推荐材料生成完成" & vbCrLf & vbCrLf & _
+           "耗时：" & Format(Timer - t0, "0.0") & " 秒" & vbCrLf & vbCrLf & _
+           "处理结果：" & vbCrLf & _
+           "产品数量：" & productCount & vbCrLf & vbCrLf & _
+           "输出文件：" & vbCrLf & outputPath, vbInformation, "推荐材料生成"
 
 CleanExit:
     Application.ScreenUpdating = oldScreenUpdating
@@ -116,7 +117,8 @@ CleanExit:
     Exit Sub
 
 EH:
-    MsgBox "生成推荐材料失败: " & Err.Description, vbExclamation
+    MsgBox "推荐材料生成失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & Err.Description, vbExclamation, "推荐材料生成"
     On Error Resume Next
     If Not wbOut Is Nothing Then wbOut.Close SaveChanges:=False
     On Error GoTo 0

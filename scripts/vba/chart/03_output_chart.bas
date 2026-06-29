@@ -50,7 +50,8 @@ Public Sub Chart03_GenerateCharts()
         End If
     Next i
     If Len(missing) > 0 Then
-        MsgBox "缺少模板文件,请检查:" & missing, vbCritical
+        MsgBox "产品图表生成无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：缺少模板文件，请检查：" & missing, vbCritical, "产品图表生成"
         GoTo CleanUp
     End If
     
@@ -74,7 +75,8 @@ Public Sub Chart03_GenerateCharts()
     Loop
     
     If Len(latestFile) = 0 Then
-        MsgBox "未找到[产品净值汇总_yyyymmdd.xlsx]文件,请先运行[导出产品数据]。", vbExclamation
+        MsgBox "产品图表生成无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：未找到[产品净值汇总_yyyymmdd.xlsx]文件，请先运行[输出产品汇总]。", vbExclamation, "产品图表生成"
         GoTo CleanUp
     End If
     
@@ -181,15 +183,17 @@ NextSheet:
     
     '--- 6. 汇总提示 ---
     Dim msg As String
-    msg = "图表生成完成!" & vbCrLf & _
-          "目标文件: " & latestFile & vbCrLf & _
-          "处理sheet数: " & processedCount & vbCrLf & _
-          "耗时: " & Format(Timer - t0, "0.00") & " 秒"
+    msg = "产品图表生成完成" & vbCrLf & vbCrLf & _
+          "目标文件：" & latestFile & vbCrLf & _
+          "耗时：" & Format(Timer - t0, "0.00") & " 秒" & vbCrLf & vbCrLf & _
+          "处理结果：" & vbCrLf & _
+          "处理sheet数：" & processedCount
     If Len(errSheets) > 0 Then
-        msg = msg & vbCrLf & vbCrLf & "以下sheet处理出错:" & vbCrLf & Left(errSheets, Len(errSheets) - 2)
+        msg = msg & vbCrLf & vbCrLf & "注意事项：" & vbCrLf & _
+              "以下sheet处理出错：" & vbCrLf & Left(errSheets, Len(errSheets) - 2)
     End If
     
-    MsgBox msg, vbInformation, "处理结果"
+    MsgBox msg, vbInformation, "产品图表生成"
 
 CleanUp:
     Application.ScreenUpdating = True
@@ -510,6 +514,5 @@ Private Function AlignUp(ByVal v As Double, ByVal stepUnit As Double) As Double
         AlignUp = (Int(q) + 1) * stepUnit
     End If
 End Function
-
 
 

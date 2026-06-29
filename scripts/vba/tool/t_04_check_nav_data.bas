@@ -27,7 +27,8 @@ Public Sub Tool04_CheckNavData()
     Set wsTarget = GetWorksheet(ThisWorkbook, SHEET_TARGET)
 
     If wsSource Is Nothing Or wsTarget Is Nothing Then
-        MsgBox "未找到核对所需工作表。" & vbCrLf & _
+        MsgBox "核对净值数据无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：未找到核对所需工作表。" & vbCrLf & _
                "请确认存在：" & SHEET_SOURCE & "、" & SHEET_TARGET, _
                vbExclamation, "核对净值数据"
         GoTo CleanUp
@@ -38,7 +39,8 @@ Public Sub Tool04_CheckNavData()
     targetLastRow = LastUsedRow(wsTarget, "B")
 
     If sourceLastRow < 2 Or targetLastRow < 2 Then
-        MsgBox "至少有一个工作表没有可核对的数据。", vbExclamation, "核对净值数据"
+        MsgBox "核对净值数据无法继续" & vbCrLf & vbCrLf & _
+               "错误信息：至少有一个工作表没有可核对的数据。", vbExclamation, "核对净值数据"
         GoTo CleanUp
     End If
 
@@ -141,10 +143,11 @@ Public Sub Tool04_CheckNavData()
     wbResult.SaveAs Filename:=outputPath, FileFormat:=xlOpenXMLWorkbook
     wbResult.Close SaveChanges:=True
 
-    MsgBox "核对完成。" & vbCrLf & _
-           "匹配记录: " & matchedCount & " 条" & vbCrLf & _
-           "超过限度: " & differenceCount & " 条" & vbCrLf & _
-           "结果文件: " & outputPath, vbInformation, "核对净值数据"
+    MsgBox "核对净值数据完成" & vbCrLf & vbCrLf & _
+           "处理结果：" & vbCrLf & _
+           "匹配记录数：" & matchedCount & vbCrLf & _
+           "超过限度记录数：" & differenceCount & vbCrLf & vbCrLf & _
+           "输出文件：" & vbCrLf & outputPath, vbInformation, "核对净值数据"
 
 CleanUp:
     Application.ScreenUpdating = True
@@ -153,7 +156,8 @@ CleanUp:
     Exit Sub
 
 ErrHandler:
-    MsgBox "核对失败：" & Err.Description, vbCritical, "核对净值数据"
+    MsgBox "核对净值数据失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & Err.Description, vbCritical, "核对净值数据"
     Resume CleanUp
 End Sub
 

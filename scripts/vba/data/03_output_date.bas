@@ -105,13 +105,14 @@ Private Sub CalculateClassReportCore()
     Application.DisplayAlerts = oldDisplayAlerts
 
     Dim msg As String
-    msg = "产品分类表现报告生成完成" & vbCrLf & _
-          "输出文件：" & outputPath & vbCrLf & vbCrLf & _
+    msg = "产品分类表现报告生成完成" & vbCrLf & vbCrLf & _
+          "基准日期：" & Format$(baselineDate, "yyyy-mm-dd") & vbCrLf & vbCrLf & _
+          "处理结果：" & vbCrLf & _
           "稳享长期限：" & rowCounters(CAT_STABLE) - 2 & " 条" & vbCrLf & _
           "直销：" & rowCounters(CAT_DIRECT) - 2 & " 条" & vbCrLf & _
           "交行代销：" & rowCounters(CAT_BANK) - 2 & " 条" & vbCrLf & _
           "圆融安享：" & rowCounters(CAT_YUANRONG_ANXIANG) - 2 & " 条" & vbCrLf & vbCrLf & _
-          "基准日期：" & Format$(baselineDate, "yyyy-mm-dd")
+          "输出文件：" & vbCrLf & outputPath
     MsgBox msg, vbInformation, "产品分类表现报告"
 
     Exit Sub
@@ -121,7 +122,8 @@ CleanFail:
     Application.EnableEvents = oldEnableEvents
     Application.ScreenUpdating = oldScreenUpdating
     Application.DisplayAlerts = oldDisplayAlerts
-    MsgBox "产品分类表现报告生成失败：" & Err.Description, vbCritical, "产品分类表现报告"
+    MsgBox "产品分类表现报告生成失败" & vbCrLf & vbCrLf & _
+           "错误信息：" & Err.Description, vbCritical, "产品分类表现报告"
 End Sub
 
 ' --- 通用字段写入（产品分类 → 输出工作表） ---
